@@ -1,0 +1,107 @@
+PODS:
+  - Alamofire (5.0.0-rc.3)
+  - OpenCombine (0.8.0)
+  - OpenCombineDispatch (0.8.0):
+    - OpenCombine (>= 0.7)
+  - OpenCombineFoundation (0.8.0):
+    - OpenCombine (>= 0.7)
+  - PINCache (3.0.1-beta.7):
+    - PINCache/Arc-exception-safe (= 3.0.1-beta.7)
+    - PINCache/Core (= 3.0.1-beta.7)
+  - PINCache/Arc-exception-safe (3.0.1-beta.7):
+    - PINCache/Core
+  - PINCache/Core (3.0.1-beta.7):
+    - PINOperation (~> 1.1.1)
+  - PINOperation (1.1.2)
+  - PINRemoteImage/Core (3.0.0-beta.14):
+    - PINOperation
+  - PINRemoteImage/iOS (3.0.0-beta.14):
+    - PINRemoteImage/Core
+  - PINRemoteImage/PINCache (3.0.0-beta.14):
+    - PINCache (= 3.0.1-beta.7)
+    - PINRemoteImage/Core
+  - SwiftyJSON (4.3.0)
+  - Texture (2.8.1):
+    - Texture/AssetsLibrary (= 2.8.1)
+    - Texture/Core (= 2.8.1)
+    - Texture/MapKit (= 2.8.1)
+    - Texture/Photos (= 2.8.1)
+    - Texture/PINRemoteImage (= 2.8.1)
+    - Texture/Video (= 2.8.1)
+  - Texture/AssetsLibrary (2.8.1):
+    - Texture/Core
+  - Texture/Core (2.8.1)
+  - Texture/MapKit (2.8.1):
+    - Texture/Core
+  - Texture/Photos (2.8.1):
+    - Texture/Core
+  - Texture/PINRemoteImage (2.8.1):
+    - PINRemoteImage/iOS (= 3.0.0-beta.14)
+    - PINRemoteImage/PINCache
+    - Texture/Core
+  - Texture/Video (2.8.1):
+    - Texture/Core
+  - TextureSwiftSupport (1.1.0):
+    - Texture/Core (~> 2.8)
+
+DEPENDENCIES:
+  - Alamofire (~> 5.0.0-rc.3)
+  - OpenCombine (from `https://github.com/broadwaylamb/OpenCombine.git`, branch `master`)
+  - OpenCombineDispatch (from `https://github.com/broadwaylamb/OpenCombine.git`, branch `master`)
+  - OpenCombineFoundation (from `https://github.com/broadwaylamb/OpenCombine.git`, branch `master`)
+  - SwiftyJSON (~> 4.0)
+  - Texture (from `https://github.com/TextureGroup/Texture.git`, branch `master`)
+  - TextureSwiftSupport
+
+SPEC REPOS:
+  trunk:
+    - Alamofire
+    - PINCache
+    - PINOperation
+    - PINRemoteImage
+    - SwiftyJSON
+    - TextureSwiftSupport
+
+EXTERNAL SOURCES:
+  OpenCombine:
+    :branch: master
+    :git: https://github.com/broadwaylamb/OpenCombine.git
+  OpenCombineDispatch:
+    :branch: master
+    :git: https://github.com/broadwaylamb/OpenCombine.git
+  OpenCombineFoundation:
+    :branch: master
+    :git: https://github.com/broadwaylamb/OpenCombine.git
+  Texture:
+    :branch: master
+    :git: https://github.com/TextureGroup/Texture.git
+
+CHECKOUT OPTIONS:
+  OpenCombine:
+    :commit: d6b70ad309ec819ca54ffa34daafab2934d9539c
+    :git: https://github.com/broadwaylamb/OpenCombine.git
+  OpenCombineDispatch:
+    :commit: d6b70ad309ec819ca54ffa34daafab2934d9539c
+    :git: https://github.com/broadwaylamb/OpenCombine.git
+  OpenCombineFoundation:
+    :commit: d6b70ad309ec819ca54ffa34daafab2934d9539c
+    :git: https://github.com/broadwaylamb/OpenCombine.git
+  Texture:
+    :commit: 70613a655a0a3ac38b8d1f77d22b4ef8b5308afa
+    :git: https://github.com/TextureGroup/Texture.git
+
+SPEC CHECKSUMS:
+  Alamofire: ca8c0de6906873be89d6deec5c8de279e00bf872
+  OpenCombine: b3ef8bff80f511d63424ee8f07c0c464b6671e2e
+  OpenCombineDispatch: f995101e34c543b7817d3c46fe13f987d746bc4b
+  OpenCombineFoundation: a6ca52a4310d049e277570bc6f14bc09cbd4e2f4
+  PINCache: 7cb9ae068c8f655717f7c644ef1dff9fd573e979
+  PINOperation: 24b774353ca248fcf87d67b2d61eef42087c125a
+  PINRemoteImage: 81bbff853acc71c6de9e106e9e489a791b8bbb08
+  SwiftyJSON: 6faa0040f8b59dead0ee07436cbf76b73c08fd08
+  Texture: 95cfad2ed5e7f06c32e34278c39d386568481f73
+  TextureSwiftSupport: 5ecb225e3bf467fe00b0070890d9034a8d10ab55
+
+PODFILE CHECKSUM: 72d033d7372c40266e3e7635ad86597676e200df
+
+COCOAPODS: 1.8.4
