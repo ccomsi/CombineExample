@@ -52,7 +52,7 @@ final class ASDKViewController: ASViewController<ASTableNode> {
         //tableView.tableNode?.reloadData()
         
         //fetchNewBatchWithContext(nil)
-        viewModel.name = "haha"
+        viewModel.name = "hahag"
     }
     
     override func viewDidLoad() {
