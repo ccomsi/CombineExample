@@ -11,7 +11,7 @@ import OpenCombine
 import OpenCombineFoundation
 import OpenCombineDispatch
 
-class FeedNodeModel {
+final class FeedNodeModel {
     @Published var title: String
     
     var photoNodeModels = [PhotoNodeModel]()

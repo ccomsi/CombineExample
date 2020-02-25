@@ -74,10 +74,7 @@
       "name": "IGListKit",
       "dependencies": {
         "IGListKit": [
-          "~> 4.0"
-        ],
-        "IGListDiffKit": [
-          "~> 4.0"
+          "~> 3.0"
         ],
         "Texture/Core": [
 

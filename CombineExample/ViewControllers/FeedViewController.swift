@@ -11,7 +11,6 @@ import OpenCombine
 import OpenCombineDispatch
 import OpenCombineFoundation
 
-
 final class FeedViewController: ASViewController<ASTableNode> {
     
     var nodeModel = FeedNodeModel(title: "Welcome to Playground")
@@ -44,8 +43,6 @@ final class FeedViewController: ASViewController<ASTableNode> {
         node.dataSource = self
         node.delegate = self
         node.view.separatorStyle = .none
-        
-        navigationController?.hidesBarsOnSwipe = true
     }
     
     @objc func foo() {

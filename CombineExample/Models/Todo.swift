@@ -9,6 +9,7 @@
 import Foundation
 
 struct Todo: Codable, Hashable {
+    
     let userId: Int
     let id: Int
     let title: String

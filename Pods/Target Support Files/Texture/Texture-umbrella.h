@@ -138,7 +138,7 @@
 #import "ASDimension.h"
 #import "ASDimensionInternal.h"
 #import "ASInsetLayoutSpec.h"
-#import "ASLayout+IGListDiffKit.h"
+#import "ASLayout+IGListKit.h"
 #import "ASLayout.h"
 #import "ASLayoutElement.h"
 #import "ASLayoutElementExtensibility.h"

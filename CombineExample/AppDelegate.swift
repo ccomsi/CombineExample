@@ -15,12 +15,16 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         
-        let feedNavigationController = UINavigationController(rootViewController: FeedViewController())
+        let feedNavigationController = ASNavigationController(rootViewController: FeedViewController())
         feedNavigationController.tabBarItem.title = "Feed"
         
-        let tabBarController = UITabBarController()
-        tabBarController.viewControllers = [feedNavigationController]
-        tabBarController.selectedIndex = 0
+        let searchNavigationController = ASNavigationController(rootViewController: SearchViewController())
+        searchNavigationController.tabBarItem.title = "Search"
+        
+        let tabBarController = ASTabBarController()
+        tabBarController.viewControllers = [feedNavigationController, searchNavigationController]
+        
+        tabBarController.selectedIndex = 1
 
         window = UIWindow()
         window?.backgroundColor = .white

@@ -11,8 +11,10 @@ import TextureSwiftSupport
 import OpenCombine
 import OpenCombineDispatch
 
-class PhotoNode: ASCellNode {
+final class PhotoNode: ASCellNode {
 
+    let cellNodeModel: PhotoNodeModel
+    
     var cancellable = [AnyCancellable]()
     
     lazy var imageNode: ASNetworkImageNode = {
@@ -23,24 +25,17 @@ class PhotoNode: ASCellNode {
         ASTextNode()
     }()
     
-    override func layoutSpecThatFits(_ constrainedSize: ASSizeRange) -> ASLayoutSpec {
-        LayoutSpec {
-            VStackLayout {
-                textNode
-                imageNode.preferredSize(CGSize(width: 100, height: 100))
-            }
-        }
-    }
-    
     init(_ nodeModel: PhotoNodeModel) {
+        
+        self.cellNodeModel = nodeModel
         super.init()
+        
         self.automaticallyManagesSubnodes = true
-        self.nodeModel = nodeModel
         self.binding()        
     }
     
     func binding() {
-        guard let nodeModel = self.nodeModel as? PhotoNodeModel else { return }
+        let nodeModel = cellNodeModel
         
         nodeModel.$title.map { NSAttributedString(string: $0) }
             .receive(on: DispatchQueue.main.ocombine)
@@ -53,4 +48,13 @@ class PhotoNode: ASCellNode {
             .store(in: &self.cancellable)
     }
 
+    override func layoutSpecThatFits(_ constrainedSize: ASSizeRange) -> ASLayoutSpec {
+        LayoutSpec {
+            VStackLayout {
+                textNode
+                imageNode.preferredSize(CGSize(width: 100, height: 100))
+            }.width(constrainedSize.max.width)
+        }
+    }
+    
 }

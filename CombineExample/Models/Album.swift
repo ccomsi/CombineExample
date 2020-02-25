@@ -9,6 +9,7 @@
 import Foundation
 
 struct Album: Codable, Hashable {
+    
     let userId: Int
     let id: Int
     let title: String

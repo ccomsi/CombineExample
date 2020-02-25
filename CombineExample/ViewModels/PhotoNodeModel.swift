@@ -9,16 +9,29 @@
 import Foundation
 import OpenCombine
 import OpenCombineFoundation
+import IGListKit.IGListDiffable
 
-class PhotoNodeModel {
+final class PhotoNodeModel: NSObject {
+    
     let model: Photo
     
     @Published var title: String
     @Published var thumbnailUrl: URL?
 
-    init(_ photo: Photo) {
-        self.model = photo
-        self.title = photo.title
-        self.thumbnailUrl = URL(string: photo.thumbnailUrl)
+    init(_ model: Photo) {
+        self.model = model
+        
+        self.title = model.title
+        self.thumbnailUrl = URL(string: model.thumbnailUrl)
+    }
+}
+
+extension PhotoNodeModel: ListDiffable {
+    func diffIdentifier() -> NSObjectProtocol {
+        self
+    }
+    
+    func isEqual(toDiffableObject object: ListDiffable?) -> Bool {
+        self === object
     }
 }

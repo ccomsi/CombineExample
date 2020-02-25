@@ -1,5 +1,10 @@
 PODS:
   - Alamofire (5.0.0-rc.3)
+  - IGListKit (3.4.0):
+    - IGListKit/Default (= 3.4.0)
+  - IGListKit/Default (3.4.0):
+    - IGListKit/Diffing
+  - IGListKit/Diffing (3.4.0)
   - OpenCombine (0.8.0)
   - OpenCombineDispatch (0.8.0):
     - OpenCombine (>= 0.7)
@@ -31,6 +36,9 @@ PODS:
   - Texture/AssetsLibrary (2.8.1):
     - Texture/Core
   - Texture/Core (2.8.1)
+  - Texture/IGListKit (2.8.1):
+    - IGListKit (~> 3.0)
+    - Texture/Core
   - Texture/MapKit (2.8.1):
     - Texture/Core
   - Texture/Photos (2.8.1):
@@ -46,16 +54,19 @@ PODS:
 
 DEPENDENCIES:
   - Alamofire (~> 5.0.0-rc.3)
+  - IGListKit
   - OpenCombine (from `https://github.com/broadwaylamb/OpenCombine.git`, branch `master`)
   - OpenCombineDispatch (from `https://github.com/broadwaylamb/OpenCombine.git`, branch `master`)
   - OpenCombineFoundation (from `https://github.com/broadwaylamb/OpenCombine.git`, branch `master`)
   - SwiftyJSON (~> 4.0)
-  - Texture (from `https://github.com/TextureGroup/Texture.git`, branch `master`)
+  - Texture (from `https://github.com/TextureGroup/Texture.git`, branch `releases/p8.8`)
+  - Texture/IGListKit (from `https://github.com/TextureGroup/Texture.git`, branch `releases/p8.8`)
   - TextureSwiftSupport
 
 SPEC REPOS:
   trunk:
     - Alamofire
+    - IGListKit
     - PINCache
     - PINOperation
     - PINRemoteImage
@@ -73,7 +84,7 @@ EXTERNAL SOURCES:
     :branch: master
     :git: https://github.com/broadwaylamb/OpenCombine.git
   Texture:
-    :branch: master
+    :branch: releases/p8.8
     :git: https://github.com/TextureGroup/Texture.git
 
 CHECKOUT OPTIONS:
@@ -87,11 +98,12 @@ CHECKOUT OPTIONS:
     :commit: d6b70ad309ec819ca54ffa34daafab2934d9539c
     :git: https://github.com/broadwaylamb/OpenCombine.git
   Texture:
-    :commit: 70613a655a0a3ac38b8d1f77d22b4ef8b5308afa
+    :commit: 7bcf3eb9b38fbcc5fde51e0674f635548241e7fa
     :git: https://github.com/TextureGroup/Texture.git
 
 SPEC CHECKSUMS:
   Alamofire: ca8c0de6906873be89d6deec5c8de279e00bf872
+  IGListKit: 7a5d788e9fb746bcd402baa8e8b24bc3bd2a5a07
   OpenCombine: b3ef8bff80f511d63424ee8f07c0c464b6671e2e
   OpenCombineDispatch: f995101e34c543b7817d3c46fe13f987d746bc4b
   OpenCombineFoundation: a6ca52a4310d049e277570bc6f14bc09cbd4e2f4
@@ -99,9 +111,9 @@ SPEC CHECKSUMS:
   PINOperation: 24b774353ca248fcf87d67b2d61eef42087c125a
   PINRemoteImage: 81bbff853acc71c6de9e106e9e489a791b8bbb08
   SwiftyJSON: 6faa0040f8b59dead0ee07436cbf76b73c08fd08
-  Texture: 95cfad2ed5e7f06c32e34278c39d386568481f73
+  Texture: 6811322192a44ed35bcd53772aa8df8965d9796b
   TextureSwiftSupport: 5ecb225e3bf467fe00b0070890d9034a8d10ab55
 
-PODFILE CHECKSUM: 72d033d7372c40266e3e7635ad86597676e200df
+PODFILE CHECKSUM: 5c2716c17030f5410fa6021b90cc9fd7f7d273bf
 
 COCOAPODS: 1.8.4
