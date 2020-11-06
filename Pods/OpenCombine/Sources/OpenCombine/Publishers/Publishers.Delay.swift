@@ -7,8 +7,52 @@
 
 extension Publisher {
 
-    /// Delays delivery of all output to the downstream receiver by a specified amount
-    /// of time on a particular scheduler.
+    /// Delays delivery of all output to the downstream receiver by a specified amount of
+    /// time on a particular scheduler.
+    ///
+    /// Use `delay(for:tolerance:scheduler:options:)` when you need to delay the delivery
+    /// of elements to a downstream by a specified amount of time.
+    ///
+    /// In this example, a `Timer` publishes an event every second.
+    /// The `delay(for:tolerance:scheduler:options:)` operator holds the delivery of
+    /// the initial element for 3 seconds (±0.5 seconds), after which each element is
+    /// delivered to the downstream on the main run loop after the specified delay:
+    ///
+    ///     let df = DateFormatter()
+    ///     df.dateStyle = .none
+    ///     df.timeStyle = .long
+    ///     cancellable = Timer.publish(every: 1.0, on: .main, in: .default)
+    ///         .autoconnect()
+    ///         .handleEvents(receiveOutput: { date in
+    ///             print ("Sending Timestamp \'\(df.string(from: date))\' to delay()")
+    ///         })
+    ///         .delay(for: .seconds(3), scheduler: RunLoop.main, options: .none)
+    ///         .sink(
+    ///             receiveCompletion: { print ("completion: \($0)", terminator: "\n") },
+    ///             receiveValue: { value in
+    ///                 let now = Date()
+    ///                 print("""
+    ///                 At \(df.string(from: now)) received Timestamp \
+    ///                 \'\(df.string(from: value))\' \
+    ///                 sent: \(String(format: "%.2f", now.timeIntervalSince(value)))
+    ///                 secs ago
+    ///                 """)
+    ///             }
+    ///         )
+    ///
+    ///     // Prints:
+    ///     //    Sending Timestamp '5:02:33 PM PDT' to delay()
+    ///     //    Sending Timestamp '5:02:34 PM PDT' to delay()
+    ///     //    Sending Timestamp '5:02:35 PM PDT' to delay()
+    ///     //    Sending Timestamp '5:02:36 PM PDT' to delay()
+    ///     //    At 5:02:36 PM PDT received  Timestamp '5:02:33 PM PDT' sent: 3.00
+    ///     //    secs ago
+    ///     //    Sending Timestamp '5:02:37 PM PDT' to delay()
+    ///     //    At 5:02:37 PM PDT received  Timestamp '5:02:34 PM PDT' sent: 3.00
+    ///     //    secs ago
+    ///     //    Sending Timestamp '5:02:38 PM PDT' to delay()
+    ///     //    At 5:02:38 PM PDT received  Timestamp '5:02:35 PM PDT' sent: 3.00
+    ///     //    secs ago
     ///
     /// The delay affects the delivery of elements and completion, but not of the original
     /// subscription.
@@ -17,6 +61,7 @@ extension Publisher {
     ///   - interval: The amount of time to delay.
     ///   - tolerance: The allowed tolerance in firing delayed events.
     ///   - scheduler: The scheduler to deliver the delayed events.
+    ///   - options: Options relevant to the scheduler’s behavior.
     /// - Returns: A publisher that delays delivery of elements and completion to
     ///   the downstream receiver.
     public func delay<Context: Scheduler>(
@@ -74,7 +119,12 @@ extension Publishers {
             where Upstream.Failure == Downstream.Failure,
                   Upstream.Output == Downstream.Input
         {
-            upstream.subscribe(Inner(self, downstream: subscriber))
+            let inner = Inner(downstream: subscriber,
+                              interval: interval,
+                              tolerance: tolerance,
+                              scheduler: scheduler,
+                              options: options)
+            upstream.subscribe(inner)
         }
     }
 }
@@ -85,25 +135,28 @@ extension Publishers.Delay {
           Subscription
         where Downstream.Input == Upstream.Output, Downstream.Failure == Upstream.Failure
     {
-        // NOTE: This class has been audited for thread safety
-
         typealias Input = Upstream.Output
         typealias Failure = Upstream.Failure
 
-        fileprivate typealias Delay = Publishers.Delay<Upstream, Context>
-
-        private enum State {
-            case ready(Delay, Downstream)
-            case subscribed(Delay, Downstream, Subscription)
-            case terminal
-        }
-
         private let lock = UnfairLock.allocate()
-        private var state: State
+        private let downstream: Downstream
+        private let interval: Context.SchedulerTimeType.Stride
+        private let tolerance: Context.SchedulerTimeType.Stride
+        private let scheduler: Context
+        private let options: Context.SchedulerOptions?
+        private var state = SubscriptionStatus.awaitingSubscription
         private let downstreamLock = UnfairRecursiveLock.allocate()
 
-        fileprivate init(_ publisher: Delay, downstream: Downstream) {
-            state = .ready(publisher, downstream)
+        fileprivate init(downstream: Downstream,
+                         interval: Context.SchedulerTimeType.Stride,
+                         tolerance: Context.SchedulerTimeType.Stride,
+                         scheduler: Context,
+                         options: Context.SchedulerOptions?) {
+            self.downstream = downstream
+            self.interval = interval
+            self.tolerance = tolerance
+            self.scheduler = scheduler
+            self.options = options
         }
 
         deinit {
@@ -111,73 +164,82 @@ extension Publishers.Delay {
             downstreamLock.deallocate()
         }
 
-        private func schedule(_ delay: Delay, work: @escaping () -> Void) {
-            delay
-                .scheduler
-                .schedule(after: delay.scheduler.now.advanced(by: delay.interval),
-                          tolerance: delay.tolerance,
-                          options: delay.options,
+        private func schedule(_ work: @escaping () -> Void) {
+            scheduler
+                .schedule(after: scheduler.now.advanced(by: interval),
+                          tolerance: tolerance,
+                          options: options,
                           work)
         }
 
         func receive(subscription: Subscription) {
             lock.lock()
-            guard case let .ready(delay, downstream) = state else {
+            guard case .awaitingSubscription = state else {
                 lock.unlock()
                 subscription.cancel()
                 return
             }
-            state = .subscribed(delay, downstream, subscription)
+            state = .subscribed(subscription)
             lock.unlock()
             downstreamLock.lock()
             downstream.receive(subscription: self)
             downstreamLock.unlock()
         }
 
-        func receive(_ input: Upstream.Output) -> Subscribers.Demand {
+        func receive(_ input: Input) -> Subscribers.Demand {
             lock.lock()
-            guard case let .subscribed(delay, downstream, _) = state else {
+            guard case .subscribed = state else {
                 lock.unlock()
                 return .none
             }
             lock.unlock()
-            schedule(delay) {
-                self.scheduledReceive(input, downstream: downstream)
+            schedule {
+                self.scheduledReceive(input)
             }
             return .none
         }
 
-        private func scheduledReceive(_ input: Upstream.Output, downstream: Downstream) {
-            downstreamLock.lock()
-            let newDemand = downstream.receive(input)
-            downstreamLock.unlock()
-            guard newDemand > 0 else {
-                return
-            }
+        private func scheduledReceive(_ input: Input) {
             lock.lock()
-            guard case let .subscribed(_, _, subscription) = state else {
+            guard state.subscription != nil else {
                 lock.unlock()
                 return
             }
             lock.unlock()
-            subscription.request(newDemand)
+            downstreamLock.lock()
+            let newDemand = downstream.receive(input)
+            downstreamLock.unlock()
+            if newDemand == .none { return }
+            lock.lock()
+            let subscription = state.subscription
+            lock.unlock()
+            subscription?.request(newDemand)
         }
 
         func receive(completion: Subscribers.Completion<Failure>) {
             lock.lock()
-            guard case let .subscribed(delay, downstream, _) = state else {
+            guard case let .subscribed(subscription) = state else {
+                lock.unlock()
+                return
+            }
+            state = .pendingTerminal(subscription)
+            lock.unlock()
+            schedule {
+                self.scheduledReceive(completion: completion)
+            }
+        }
+
+        private func scheduledReceive(completion: Subscribers.Completion<Failure>) {
+            lock.lock()
+            guard case .pendingTerminal = state else {
+                assertionFailure(
+                    "This branch should not be reachable! Please report a bug."
+                )
                 lock.unlock()
                 return
             }
             state = .terminal
             lock.unlock()
-            schedule(delay) {
-                self.scheduledReceive(completion: completion, downstream: downstream)
-            }
-        }
-
-        private func scheduledReceive(completion: Subscribers.Completion<Failure>,
-                                      downstream: Downstream) {
             downstreamLock.lock()
             downstream.receive(completion: completion)
             downstreamLock.unlock()
@@ -185,7 +247,7 @@ extension Publishers.Delay {
 
         func request(_ demand: Subscribers.Demand) {
             lock.lock()
-            guard case let .subscribed(_, _, subscription) = state else {
+            guard case let .subscribed(subscription) = state else {
                 lock.unlock()
                 return
             }
@@ -195,7 +257,7 @@ extension Publishers.Delay {
 
         func cancel() {
             lock.lock()
-            guard case let .subscribed(_, _, subscription) = state else {
+            guard case let .subscribed(subscription) = state else {
                 lock.unlock()
                 return
             }

@@ -6,10 +6,33 @@
 
 extension Publisher {
 
-    /// Ingores all upstream elements, but passes along a completion
-    /// state (finished or failed).
+    /// Ingores all upstream elements, but passes along a completion state (finished or
+    /// failed).
+    ///
+    /// Use the `ignoreOutput(`` operator to determine if a publisher is able to complete
+    /// successfully or would fail.
+    ///
+    /// In the example below, the array publisher (`numbers`) delivers the first five of
+    /// its elements successfully, as indicated by the `ignoreOutput()` operator.
+    /// The operator consumes, but doesn’t republish the elements downstream. However,
+    /// the sixth element, `0`, causes the error throwing closure to catch
+    /// a `NoZeroValuesAllowedError` that terminates the stream.
+    ///
+    ///     struct NoZeroValuesAllowedError: Error {}
+    ///     let numbers = [1, 2, 3, 4, 5, 0, 6, 7, 8, 9]
+    ///     cancellable = numbers.publisher
+    ///         .tryFilter({ anInt in
+    ///             guard anInt != 0 else { throw NoZeroValuesAllowedError() }
+    ///             return anInt < 20
+    ///         })
+    ///         .ignoreOutput()
+    ///         .sink(receiveCompletion: {print("completion: \($0)")},
+    ///               receiveValue: {print("value \($0)")})
+    ///
+    ///     // Prints: "completion: failure(NoZeroValuesAllowedError())"
     ///
     /// The output type of this publisher is `Never`.
+    ///
     /// - Returns: A publisher that ignores all upstream elements.
     public func ignoreOutput() -> Publishers.IgnoreOutput<Self> {
         return .init(upstream: self)
@@ -41,44 +64,27 @@ extension Publishers {
 }
 
 extension Publishers.IgnoreOutput {
-    private final class Inner<Downstream: Subscriber>
+    private struct Inner<Downstream: Subscriber>
         : Subscriber,
-          Subscription,
           CustomStringConvertible,
           CustomReflectable,
           CustomPlaygroundDisplayConvertible
         where Downstream.Input == Never, Downstream.Failure == Upstream.Failure
     {
-        // NOTE: This class has been audited for thread safety
-
         typealias Input = Upstream.Output
 
         typealias Failure = Upstream.Failure
 
         private let downstream: Downstream
 
-        private var status = SubscriptionStatus.awaitingSubscription
-
-        private let lock = UnfairLock.allocate()
+        let combineIdentifier = CombineIdentifier()
 
         fileprivate init(downstream: Downstream) {
             self.downstream = downstream
         }
 
-        deinit {
-            lock.deallocate()
-        }
-
         func receive(subscription: Subscription) {
-            lock.lock()
-            guard case .awaitingSubscription = status else {
-                lock.unlock()
-                subscription.cancel()
-                return
-            }
-            status = .subscribed(subscription)
-            lock.unlock()
-            downstream.receive(subscription: self)
+            downstream.receive(subscription: subscription)
             subscription.request(.unlimited)
         }
 
@@ -87,42 +93,13 @@ extension Publishers.IgnoreOutput {
         }
 
         func receive(completion: Subscribers.Completion<Failure>) {
-            lock.lock()
-            guard case .subscribed = status else {
-                lock.unlock()
-                return
-            }
-            status = .terminal
-            lock.unlock()
             downstream.receive(completion: completion)
-        }
-
-        func request(_ demand: Subscribers.Demand) {
-            // ignore and requests from downstream since we'll never send
-            // any values
-        }
-
-        func cancel() {
-            lock.lock()
-            guard case let .subscribed(subscription) = status else {
-                lock.unlock()
-                return
-            }
-            status = .terminal
-            lock.unlock()
-            subscription.cancel()
         }
 
         var description: String { return "IgnoreOutput" }
 
         var customMirror: Mirror {
-            lock.lock()
-            defer { lock.unlock() }
-            let children: [Mirror.Child] = [
-                ("downstream", downstream),
-                ("status", status)
-            ]
-            return Mirror(self, children: children)
+            return Mirror(self, children: EmptyCollection())
         }
 
         var playgroundDescription: Any { return description }

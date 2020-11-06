@@ -15,7 +15,7 @@ final class PhotoNode: ASCellNode {
 
     let cellNodeModel: PhotoNodeModel
     
-    var cancellable = [AnyCancellable]()
+    var cancellable = Set<AnyCancellable>()
     
     lazy var imageNode: ASNetworkImageNode = {
         ASNetworkImageNode()
@@ -39,16 +39,17 @@ final class PhotoNode: ASCellNode {
         
         nodeModel.$title.map { NSAttributedString(string: $0) }
             .receive(on: DispatchQueue.main.ocombine)
-            .assign(to: \.attributedText, on: self.textNode)
-            .store(in: &self.cancellable)
+            .assign(to: \.attributedText, on: textNode)
+            .store(in: &cancellable)
         
         nodeModel.$thumbnailUrl.map { $0 }
             .receive(on: DispatchQueue.main.ocombine)
-            .assign(to: \.url, on: self.imageNode)
-            .store(in: &self.cancellable)
+            .assign(to: \.url, on: imageNode)
+            .store(in: &cancellable)
     }
 
     override func layoutSpecThatFits(_ constrainedSize: ASSizeRange) -> ASLayoutSpec {
+
         LayoutSpec {
             VStackLayout {
                 textNode

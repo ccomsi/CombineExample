@@ -11,7 +11,7 @@ import IGListKit
 import OpenCombine
 import OpenCombineDispatch
 
-final class SearchViewController: ASViewController<ASCollectionNode> {
+final class SearchViewController: ASDKViewController<ASCollectionNode> {
     
     var adapter: ListAdapter!
     var collectionNode: ASCollectionNode {
@@ -31,7 +31,7 @@ final class SearchViewController: ASViewController<ASCollectionNode> {
     
     var nodeModel = SearchNodeModel(title: "Welcome to Search")
     
-    var cancellable = [AnyCancellable]()
+    var cancellable = Set<AnyCancellable>()
     
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
@@ -59,7 +59,7 @@ final class SearchViewController: ASViewController<ASCollectionNode> {
             self.nodeModel.title = "loading..."
         }
         
-        self.nodeModel.fetch()
+        self.nodeModel.fetch()            
             .map { $0.map { PhotoNodeModel($0) } } // [Photo] to [PhotoNodeModel]
             .map { PhotoSection($0) } // [PhotoNodeModel] to PhotoSection
             .receive(on: DispatchQueue.main.ocombine)

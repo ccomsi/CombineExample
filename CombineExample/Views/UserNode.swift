@@ -15,7 +15,7 @@ final class UserNode: ASCellNode {
     
     let cellNodeModel: UserNodeModel
     
-    var cancellable = [AnyCancellable]()
+    var cancellable = Set<AnyCancellable>()
     
     lazy var nameNode: ASTextNode = {
         ASTextNode()
@@ -58,9 +58,8 @@ final class UserNode: ASCellNode {
             .store(in: &cancellable)
     }
     
-    override func layoutSpecThatFits(_ constrainedSize: ASSizeRange) ->
-        ASLayoutSpec {
-            
+    override func layoutSpecThatFits(_ constrainedSize: ASSizeRange) -> ASLayoutSpec {
+
         LayoutSpec {
             VStackLayout {
                 nameNode

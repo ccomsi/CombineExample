@@ -8,12 +8,15 @@
 extension Publisher {
     /// Specifies the scheduler on which to receive elements from the publisher.
     ///
-    /// You use the `receive(on:options:)` operator to receive results on a specific
-    /// scheduler, such as performing UI work on the main run loop.
-    /// In contrast with `subscribe(on:options:)`, which affects upstream messages,
+    /// You use the `receive(on:options:)` operator to receive results and completion on
+    /// a specific scheduler, such as performing UI work on the main run loop. In contrast
+    /// with `subscribe(on:options:)`, which affects upstream messages,
     /// `receive(on:options:)` changes the execution context of downstream messages.
-    /// In the following example, requests to `jsonPublisher` are performed on
-    /// `backgroundQueue`, but elements received from it are performed on `RunLoop.main`.
+    ///
+    /// In the following example, the `subscribe(on:options:)` operator causes
+    /// `jsonPublisher` to receive requests on `backgroundQueue`, while
+    /// the `receive(on:options:)` causes `labelUpdater` to receive elements and
+    /// completion on `RunLoop.main`.
     ///
     ///     // Some publisher.
     ///     let jsonPublisher = MyJSONLoaderPublisher()
@@ -23,12 +26,31 @@ extension Publisher {
     ///
     ///     jsonPublisher
     ///         .subscribe(on: backgroundQueue)
-    ///         .receiveOn(on: RunLoop.main)
+    ///         .receive(on: RunLoop.main)
     ///         .subscribe(labelUpdater)
     ///
+    ///
+    /// Prefer `receive(on:options:)` over explicit use of dispatch queues when performing
+    /// work in subscribers. For example, instead of the following pattern:
+    ///
+    ///     pub.sink {
+    ///         DispatchQueue.main.async {
+    ///             // Do something.
+    ///         }
+    ///     }
+    ///
+    /// Use this pattern instead:
+    ///
+    ///     pub.receive(on: DispatchQueue.main).sink {
+    ///         // Do something.
+    ///     }
+    ///
+    ///  > Note: `receive(on:options:)` doesn’t affect the scheduler used to cal
+    ///  the subscriber’s `receive(subscription:)` method.
+    ///
     /// - Parameters:
-    ///   - scheduler: The scheduler the publisher is to use for element delivery.
-    ///   - options: Scheduler options that customize the element delivery.
+    ///   - scheduler: The scheduler the publisher uses for element delivery.
+    ///   - options: Scheduler options used to customize element delivery.
     /// - Returns: A publisher that delivers elements using the specified scheduler.
     public func receive<Context: Scheduler>(
         on scheduler: Context,
@@ -69,7 +91,10 @@ extension Publishers {
             where Upstream.Failure == Downstream.Failure,
                   Upstream.Output == Downstream.Input
         {
-            upstream.subscribe(Inner(self, downstream: subscriber))
+            let inner = Inner(scheduler: scheduler,
+                              options: options,
+                              downstream: subscriber)
+            upstream.subscribe(inner)
         }
     }
 }
@@ -84,23 +109,21 @@ extension Publishers.ReceiveOn {
         where Downstream.Input == Upstream.Output, Downstream.Failure == Upstream.Failure
     {
         typealias Input = Upstream.Output
-
         typealias Failure = Upstream.Failure
 
-        typealias ReceiveOn = Publishers.ReceiveOn<Upstream, Context>
-
-        private enum State {
-            case ready(ReceiveOn, Downstream)
-            case subscribed(ReceiveOn, Downstream, Subscription)
-            case terminal
-        }
-
         private let lock = UnfairLock.allocate()
-        private var state: State
+        private let downstream: Downstream
+        private let scheduler: Context
+        private let options: Context.SchedulerOptions?
+        private var state = SubscriptionStatus.awaitingSubscription
         private let downstreamLock = UnfairRecursiveLock.allocate()
 
-        init(_ receiveOn: ReceiveOn, downstream: Downstream) {
-            state = .ready(receiveOn, downstream)
+        init(scheduler: Context,
+             options: Context.SchedulerOptions?,
+             downstream: Downstream) {
+            self.downstream = downstream
+            self.scheduler = scheduler
+            self.options = options
         }
 
         deinit {
@@ -110,62 +133,65 @@ extension Publishers.ReceiveOn {
 
         func receive(subscription: Subscription) {
             lock.lock()
-            guard case let .ready(receiveOn, downstream) = state else {
+            guard case .awaitingSubscription = state else {
                 lock.unlock()
                 subscription.cancel()
                 return
             }
-            state = .subscribed(receiveOn, downstream, subscription)
+            state = .subscribed(subscription)
             lock.unlock()
             downstreamLock.lock()
             downstream.receive(subscription: self)
             downstreamLock.unlock()
         }
 
-        func receive(_ input: Upstream.Output) -> Subscribers.Demand {
+        func receive(_ input: Input) -> Subscribers.Demand {
             lock.lock()
-            guard case let .subscribed(receiveOn, downstream, _) = state else {
+            guard case .subscribed = state else {
                 lock.unlock()
                 return .none
             }
             lock.unlock()
-            receiveOn.scheduler.schedule(options: receiveOn.options) { [weak self] in
-                self?.scheduledReceive(input, downstream: downstream)
+            scheduler.schedule(options: options) {
+                self.scheduledReceive(input)
             }
             return .none
         }
 
-        private func scheduledReceive(_ input: Upstream.Output, downstream: Downstream) {
+        private func scheduledReceive(_ input: Input) {
+            lock.lock()
+            guard state.subscription != nil else {
+                lock.unlock()
+                return
+            }
+            lock.unlock()
             downstreamLock.lock()
             let newDemand = downstream.receive(input)
             downstreamLock.unlock()
-            guard newDemand > 0 else {
-                return
-            }
+            if newDemand == .none { return }
             lock.lock()
-            guard case let .subscribed(_, _, subscription) = state else {
-                lock.unlock()
-                return
-            }
+            let subscription = state.subscription
             lock.unlock()
-            subscription.request(newDemand)
+            subscription?.request(newDemand)
         }
 
-        func receive(completion: Subscribers.Completion<Upstream.Failure>) {
+        func receive(completion: Subscribers.Completion<Failure>) {
             lock.lock()
-            guard case let .subscribed(receiveOn, downstream, _) = state else {
+            guard case let .subscribed(subscription) = state else {
                 lock.unlock()
                 return
             }
+            state = .pendingTerminal(subscription)
+            lock.unlock()
+            scheduler.schedule(options: options) {
+                self.scheduledReceive(completion: completion)
+            }
+        }
+
+        private func scheduledReceive(completion: Subscribers.Completion<Failure>) {
+            lock.lock()
             state = .terminal
             lock.unlock()
-            receiveOn.scheduler.schedule(options: receiveOn.options) { [weak self] in
-                self?.scheduledReceive(completion: completion, downstream: downstream)
-            }
-        }
-
-        private func scheduledReceive(completion: Subscribers.Completion<Failure>,
-                                      downstream: Downstream) {
             downstreamLock.lock()
             downstream.receive(completion: completion)
             downstreamLock.unlock()
@@ -173,7 +199,7 @@ extension Publishers.ReceiveOn {
 
         func request(_ demand: Subscribers.Demand) {
             lock.lock()
-            guard case let .subscribed(_, _, subscription) = state else {
+            guard case let .subscribed(subscription) = state else {
                 lock.unlock()
                 return
             }
@@ -183,7 +209,7 @@ extension Publishers.ReceiveOn {
 
         func cancel() {
             lock.lock()
-            guard case let .subscribed(_, _, subscription) = state else {
+            guard case let .subscribed(subscription) = state else {
                 lock.unlock()
                 return
             }

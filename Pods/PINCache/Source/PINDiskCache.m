@@ -11,7 +11,11 @@
 #import <pthread.h>
 #import <sys/xattr.h>
 
+#if SWIFT_PACKAGE
+@import PINOperation;
+#else
 #import <PINOperation/PINOperation.h>
+#endif
 
 #define PINDiskCacheError(error) if (error) { NSLog(@"%@ (%d) ERROR: %@", \
 [[NSString stringWithUTF8String:__FILE__] lastPathComponent], \
@@ -57,9 +61,12 @@ const char * PINDiskCacheFileSystemRepresentation(NSURL *url)
 }
 
 @interface PINDiskCacheMetadata : NSObject
+// When the object was added to the disk cache
 @property (nonatomic, strong) NSDate *createdDate;
+// Last time the object was accessed
 @property (nonatomic, strong) NSDate *lastModifiedDate;
 @property (nonatomic, strong) NSNumber *size;
+// Age limit is used in conjuction with ttl
 @property (nonatomic) NSTimeInterval ageLimit;
 @end
 
@@ -108,7 +115,7 @@ static NSURL *_sharedTrashURL;
 - (void)dealloc
 {
     __unused int result = pthread_mutex_destroy(&_mutex);
-    NSCAssert(result == 0, @"Failed to destroy lock in PINMemoryCache %p. Code: %d", (void *)self, result);
+    NSCAssert(result == 0, @"Failed to destroy lock in PINDiskCache %p. Code: %d", (void *)self, result);
     pthread_cond_destroy(&_diskWritableCondition);
     pthread_cond_destroy(&_diskStateKnownCondition);
 }
@@ -182,19 +189,19 @@ static NSURL *_sharedTrashURL;
               operationQueue:(PINOperationQueue *)operationQueue
                     ttlCache:(BOOL)ttlCache
 {
-    if (!name)
+    if (!name) {
         return nil;
-    
+    }
 
     NSAssert(((!serializer && !deserializer) || (serializer && deserializer)),
              @"PINDiskCache must be initialized with a serializer AND deserializer.");
     
     NSAssert(((!keyEncoder && !keyDecoder) || (keyEncoder && keyDecoder)),
-              @"PINDiskCache must be initialized with a encoder AND decoder.");
+              @"PINDiskCache must be initialized with an encoder AND decoder.");
     
     if (self = [super init]) {
         __unused int result = pthread_mutex_init(&_mutex, NULL);
-        NSAssert(result == 0, @"Failed to init lock in PINMemoryCache %@. Code: %d", self, result);
+        NSAssert(result == 0, @"Failed to init lock in PINDiskCache %@. Code: %d", self, result);
         
         _name = [name copy];
         _prefix = [prefix copy];
@@ -267,7 +274,7 @@ static NSURL *_sharedTrashURL;
 
 - (NSString *)description
 {
-    return [[NSString alloc] initWithFormat:@"%@.%@.%p", PINDiskCachePrefix, _name, (void *)self];
+    return [[NSString alloc] initWithFormat:@"%@.%@.%p", PINDiskCachePrefix, _name, (__bridge void *)self];
 }
 
 + (PINDiskCache *)sharedCache
@@ -322,7 +329,14 @@ static NSURL *_sharedTrashURL;
 - (PINDiskCacheSerializerBlock)defaultSerializer
 {
     return ^NSData*(id<NSCoding> object, NSString *key){
-        return [NSKeyedArchiver archivedDataWithRootObject:object];
+        if (@available(iOS 11.0, macOS 10.13, tvOS 11.0, watchOS 4.0, *)) {
+            NSError *error = nil;
+            NSData *data = [NSKeyedArchiver archivedDataWithRootObject:object requiringSecureCoding:NO error:&error];
+            PINDiskCacheError(error);
+            return data;
+        } else {
+            return [NSKeyedArchiver archivedDataWithRootObject:object];
+        }
     };
 }
 
@@ -489,16 +503,72 @@ static NSURL *_sharedTrashURL;
     return created;
 }
 
++ (NSArray *)resourceKeys
+{
+    static NSArray *resourceKeys = nil;
+    static dispatch_once_t predicate;
+
+    dispatch_once(&predicate, ^{
+        resourceKeys = @[ NSURLCreationDateKey, NSURLContentModificationDateKey, NSURLTotalFileAllocatedSizeKey ];
+    });
+
+    return resourceKeys;
+}
+
+/**
+ * @return File size in bytes.
+ */
+- (NSUInteger)_locked_initializeDiskPropertiesForFile:(NSURL *)fileURL fileKey:(NSString *)fileKey
+{
+    NSError *error = nil;
+
+    NSDictionary *dictionary = [fileURL resourceValuesForKeys:[PINDiskCache resourceKeys] error:&error];
+    PINDiskCacheError(error);
+
+    if (_metadata[fileKey] == nil) {
+        _metadata[fileKey] = [[PINDiskCacheMetadata alloc] init];
+    }
+
+    NSDate *createdDate = dictionary[NSURLCreationDateKey];
+    if (createdDate && fileKey)
+        _metadata[fileKey].createdDate = createdDate;
+
+    NSDate *lastModifiedDate = dictionary[NSURLContentModificationDateKey];
+    if (lastModifiedDate && fileKey)
+        _metadata[fileKey].lastModifiedDate = lastModifiedDate;
+
+    NSNumber *fileSize = dictionary[NSURLTotalFileAllocatedSizeKey];
+    if (fileSize) {
+        _metadata[fileKey].size = fileSize;
+    }
+
+    if (_ttlCache) {
+        NSTimeInterval ageLimit;
+        ssize_t res = getxattr(PINDiskCacheFileSystemRepresentation(fileURL), PINDiskCacheAgeLimitAttributeName, &ageLimit, sizeof(NSTimeInterval), 0, 0);
+        if(res > 0) {
+            _metadata[fileKey].ageLimit = ageLimit;
+        } else if (res == -1) {
+            // Ignore if the extended attribute was never recorded for this file.
+            if (errno != ENOATTR) {
+                NSDictionary<NSErrorUserInfoKey, id> *userInfo = @{ PINDiskCacheErrorReadFailureCodeKey : @(errno)};
+                error = [NSError errorWithDomain:PINDiskCacheErrorDomain code:PINDiskCacheErrorReadFailure userInfo:userInfo];
+                PINDiskCacheError(error);
+            }
+        }
+    }
+
+    return [fileSize unsignedIntegerValue];
+}
+
 - (void)initializeDiskProperties
 {
     NSUInteger byteCount = 0;
-    NSArray *keys = @[ NSURLCreationDateKey, NSURLContentModificationDateKey, NSURLTotalFileAllocatedSizeKey ];
-    
+
     NSError *error = nil;
     
     [self lock];
         NSArray *files = [[NSFileManager defaultManager] contentsOfDirectoryAtURL:_cacheURL
-                                                       includingPropertiesForKeys:keys
+                                                       includingPropertiesForKeys:[PINDiskCache resourceKeys]
                                                                           options:NSDirectoryEnumerationSkipsHiddenFiles
                                                                             error:&error];
     [self unlock];
@@ -506,47 +576,12 @@ static NSURL *_sharedTrashURL;
     PINDiskCacheError(error);
     
     for (NSURL *fileURL in files) {
-        NSString *key = [self keyForEncodedFileURL:fileURL];
-        
-        error = nil;
-        
+        NSString *fileKey = [self keyForEncodedFileURL:fileURL];
         // Continually grab and release lock while processing files to avoid contention
         [self lock];
-            NSDictionary *dictionary = [fileURL resourceValuesForKeys:keys error:&error];
-            PINDiskCacheError(error);
-            
-            if (_metadata[key] == nil) {
-                _metadata[key] = [[PINDiskCacheMetadata alloc] init];
-            }
-
-            NSDate *createdDate = [dictionary objectForKey:NSURLCreationDateKey];
-            if (createdDate && key)
-                _metadata[key].createdDate = createdDate;
-        
-            NSDate *lastModifiedDate = [dictionary objectForKey:NSURLContentModificationDateKey];
-            if (lastModifiedDate && key)
-                _metadata[key].lastModifiedDate = lastModifiedDate;
-        
-            NSNumber *fileSize = [dictionary objectForKey:NSURLTotalFileAllocatedSizeKey];
-            if (fileSize) {
-                _metadata[key].size = fileSize;
-                byteCount += [fileSize unsignedIntegerValue];
-            }
-
-            if (_ttlCache) {
-                NSTimeInterval ageLimit;
-                ssize_t res = getxattr(PINDiskCacheFileSystemRepresentation(fileURL), PINDiskCacheAgeLimitAttributeName, &ageLimit, sizeof(NSTimeInterval), 0, 0);
-                if(res) {
-                    _metadata[key].ageLimit = ageLimit;
-                } else if (res == -1) {
-                    // Ignore if the extended attribute was never recorded for this file.
-                    if (errno != ENOATTR) {
-                      NSDictionary<NSErrorUserInfoKey, id> *userInfo = @{ PINDiskCacheErrorReadFailureCodeKey : @(errno)};
-                      error = [NSError errorWithDomain:PINDiskCacheErrorDomain code:PINDiskCacheErrorReadFailure userInfo:userInfo];
-                      PINDiskCacheError(error);
-                    }
-                }
-            }
+        if (_metadata[fileKey] == nil) {
+            byteCount += [self _locked_initializeDiskPropertiesForFile:fileURL fileKey:fileKey];
+        }
         [self unlock];
     }
     
@@ -635,15 +670,18 @@ static NSURL *_sharedTrashURL;
 - (BOOL)removeFileAndExecuteBlocksForKey:(NSString *)key
 {
     NSURL *fileURL = [self encodedFileURLForKey:key];
-    
+    if (!fileURL) {
+        return NO;
+    }
+
     // We only need to lock until writable at the top because once writable, always writable
     [self lockForWriting];
-        if (!fileURL || ![[NSFileManager defaultManager] fileExistsAtPath:[fileURL path]]) {
+        if (![[NSFileManager defaultManager] fileExistsAtPath:[fileURL path]]) {
             [self unlock];
             return NO;
         }
     
-        PINCacheObjectBlock willRemoveObjectBlock = _willRemoveObjectBlock;
+        PINDiskCacheObjectBlock willRemoveObjectBlock = _willRemoveObjectBlock;
         if (willRemoveObjectBlock) {
             [self unlock];
             willRemoveObjectBlock(self, key, nil);
@@ -664,7 +702,7 @@ static NSURL *_sharedTrashURL;
         
         [_metadata removeObjectForKey:key];
     
-        PINCacheObjectBlock didRemoveObjectBlock = _didRemoveObjectBlock;
+        PINDiskCacheObjectBlock didRemoveObjectBlock = _didRemoveObjectBlock;
         if (didRemoveObjectBlock) {
             [self unlock];
             _didRemoveObjectBlock(self, key, nil);
@@ -707,6 +745,7 @@ static NSURL *_sharedTrashURL;
     }
 }
 
+// This is the default trimming method which happens automatically
 - (void)trimDiskToSizeByDate:(NSUInteger)trimByteCount
 {
     if (self.isTTLCache) {
@@ -719,12 +758,14 @@ static NSURL *_sharedTrashURL;
         if (_byteCount > trimByteCount) {
             keysToRemove = [[NSMutableArray alloc] init];
             
+            // last modified represents last access.
             NSArray *keysSortedByLastModifiedDate = [_metadata keysSortedByValueUsingComparator:^NSComparisonResult(PINDiskCacheMetadata * _Nonnull obj1, PINDiskCacheMetadata * _Nonnull obj2) {
                 return [obj1.lastModifiedDate compare:obj2.lastModifiedDate];
             }];
             
             NSUInteger bytesSaved = 0;
-            for (NSString *key in keysSortedByLastModifiedDate) { // oldest objects first
+            // objects accessed last first.
+            for (NSString *key in keysSortedByLastModifiedDate) {
                 [keysToRemove addObject:key];
                 NSNumber *byteSize = _metadata[key].size;
                 if (byteSize) {
@@ -1036,9 +1077,12 @@ static NSURL *_sharedTrashURL;
     NSDate *now = [NSDate date];
     [self lock];
         if (self->_ttlCache) {
-            // We actually need to know the entire disk state if we're a TTL cache.
-            [self unlock];
-            [self lockAndWaitForKnownState];
+            if (!_diskStateKnown) {
+                if (_metadata[key] == nil) {
+                    NSString *fileKey = [self keyForEncodedFileURL:fileURL];
+                    [self _locked_initializeDiskPropertiesForFile:fileURL fileKey:fileKey];
+                }
+            }
         }
 
         NSTimeInterval ageLimit = _metadata[key].ageLimit > 0.0 ? _metadata[key].ageLimit : self->_ageLimit;
@@ -1167,7 +1211,7 @@ static NSURL *_sharedTrashURL;
     }
 
     [self lockForWriting];
-        PINCacheObjectBlock willAddObjectBlock = self->_willAddObjectBlock;
+        PINDiskCacheObjectBlock willAddObjectBlock = self->_willAddObjectBlock;
         if (willAddObjectBlock) {
             [self unlock];
                 willAddObjectBlock(self, key, object);
@@ -1211,7 +1255,7 @@ static NSURL *_sharedTrashURL;
             fileURL = nil;
         }
     
-        PINCacheObjectBlock didAddObjectBlock = self->_didAddObjectBlock;
+        PINDiskCacheObjectBlock didAddObjectBlock = self->_didAddObjectBlock;
         if (didAddObjectBlock) {
             [self unlock];
                 didAddObjectBlock(self, key, object);
@@ -1559,7 +1603,7 @@ static NSURL *_sharedTrashURL;
 {
     [self lock];
     
-    // spinlock if the disk isn't writable
+    // Lock if the disk isn't writable.
     if (_diskWritable == NO) {
         pthread_cond_wait(&_diskWritableCondition, &_mutex);
     }
@@ -1569,7 +1613,7 @@ static NSURL *_sharedTrashURL;
 {
     [self lock];
     
-    // spinlock if the disk state isn't known
+    // Lock if the disk state isn't known.
     if (_diskStateKnown == NO) {
         pthread_cond_wait(&_diskStateKnownCondition, &_mutex);
     }
@@ -1623,29 +1667,49 @@ static NSURL *_sharedTrashURL;
 
 - (void)trimToDate:(NSDate *)date block:(nullable PINDiskCacheBlock)block
 {
-    [self trimToDateAsync:date completion:block];
+    [self trimToDateAsync:date completion:^(id<PINCaching> diskCache) {
+        if (block) {
+            block((PINDiskCache *)diskCache);
+        }
+    }];
 }
 
 - (void)trimToSize:(NSUInteger)byteCount block:(nullable PINDiskCacheBlock)block
 {
-    [self trimToSizeAsync:byteCount completion:block];
+    [self trimToSizeAsync:byteCount completion:^(id<PINCaching> diskCache) {
+        if (block) {
+            block((PINDiskCache *)diskCache);
+        }
+    }];
 }
 
 - (void)trimToSizeByDate:(NSUInteger)byteCount block:(nullable PINDiskCacheBlock)block
 {
-    [self trimToSizeAsync:byteCount completion:block];
+    [self trimToSizeAsync:byteCount completion:^(id<PINCaching> diskCache) {
+        if (block) {
+            block((PINDiskCache *)diskCache);
+        }
+    }];
 }
 
 - (void)removeAllObjects:(nullable PINDiskCacheBlock)block
 {
-    [self removeAllObjectsAsync:block];
+    [self removeAllObjectsAsync:^(id<PINCaching> diskCache) {
+        if (block) {
+            block((PINDiskCache *)diskCache);
+        }
+    }];
 }
 
 - (void)enumerateObjectsWithBlock:(PINDiskCacheFileURLBlock)block completionBlock:(nullable PINDiskCacheBlock)completionBlock
 {
     [self enumerateObjectsWithBlockAsync:^(NSString * _Nonnull key, NSURL * _Nullable fileURL, BOOL * _Nonnull stop) {
       block(key, fileURL);
-    } completionBlock:completionBlock];
+    } completionBlock:^(id<PINCaching> diskCache) {
+        if (completionBlock) {
+            completionBlock((PINDiskCache *)diskCache);
+        }
+    }];
 }
 
 - (void)setTtlCache:(BOOL)ttlCache

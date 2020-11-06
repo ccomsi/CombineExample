@@ -14,7 +14,7 @@ import OpenCombineDispatch
 final class PostNode: ASCellNode {
     let cellNodeModel: PostNodeModel
     
-    var cancellable = [AnyCancellable]()
+    var cancellable = Set<AnyCancellable>()
     
     lazy var titleNode: ASTextNode = {
         ASTextNode()
@@ -49,6 +49,7 @@ final class PostNode: ASCellNode {
     }
 
     override func layoutSpecThatFits(_ constrainedSize: ASSizeRange) -> ASLayoutSpec {
+
         LayoutSpec {
             VStackLayout {
                 titleNode

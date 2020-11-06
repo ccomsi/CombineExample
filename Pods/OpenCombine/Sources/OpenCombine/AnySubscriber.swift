@@ -7,9 +7,10 @@
 
 /// A type-erasing subscriber.
 ///
-/// Use an `AnySubscriber` to wrap an existing subscriber whose details you don’t want
-/// to expose. You can also use `AnySubscriber` to create a custom subscriber by providing
-/// closures for `Subscriber`’s methods, rather than implementing `Subscriber` directly.
+/// Use an `AnySubscriber` to wrap an existing subscriber whose details you don’t want to
+/// expose. You can also use `AnySubscriber` to create a custom subscriber by providing
+/// closures for the methods defined in `Subscriber`, rather than implementing
+/// `Subscriber` directly.
 public struct AnySubscriber<Input, Failure: Error>: Subscriber,
                                                     CustomStringConvertible,
                                                     CustomReflectable,
@@ -44,6 +45,11 @@ public struct AnySubscriber<Input, Failure: Error>: Subscriber,
     public init<Subscriber: OpenCombine.Subscriber>(_ subscriber: Subscriber)
         where Input == Subscriber.Input, Failure == Subscriber.Failure
     {
+        if let erased = subscriber as? AnySubscriber<Input, Failure> {
+            self = erased
+            return
+        }
+
         combineIdentifier = subscriber.combineIdentifier
 
         box = AnySubscriberBox(subscriber)
@@ -62,8 +68,8 @@ public struct AnySubscriber<Input, Failure: Error>: Subscriber,
 
         if let playgroundDescription = subscriber as? CustomPlaygroundDisplayConvertible {
             playgroundDescriptionThunk = { playgroundDescription.playgroundDescription }
-        } else if let desccription = subscriber as? CustomStringConvertible {
-            playgroundDescriptionThunk = { desccription.description }
+        } else if let description = subscriber as? CustomStringConvertible {
+            playgroundDescriptionThunk = { description.description }
         } else {
             let fixedDescription = String(describing: type(of: subscriber))
             playgroundDescriptionThunk = { fixedDescription }

@@ -15,7 +15,7 @@ final class FeedNodeModel {
     @Published var title: String
     
     var photoNodeModels = [PhotoNodeModel]()
-    var cancellable = [AnyCancellable]()
+    var cancellable = Set<AnyCancellable>()
     
     init(title: String) {
         self.title = title

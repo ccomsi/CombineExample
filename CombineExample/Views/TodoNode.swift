@@ -15,7 +15,7 @@ final class TodoNode: ASCellNode {
     
     let cellNodeModel: TodoNodeModel
     
-    var cancellable = [AnyCancellable]()
+    var cancellable = Set<AnyCancellable>()
     
     lazy var titleNode: ASTextNode = {
         ASTextNode()

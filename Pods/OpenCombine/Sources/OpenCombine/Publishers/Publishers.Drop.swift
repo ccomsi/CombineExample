@@ -8,8 +8,20 @@
 extension Publisher {
     /// Omits the specified number of elements before republishing subsequent elements.
     ///
-    /// - Parameter count: The number of elements to omit.
-    /// - Returns: A publisher that does not republish the first `count` elements.
+    /// Use `dropFirst(_:)` when you want to drop the first `n` elements from the upstream
+    /// publisher, and republish the remaining elements.
+    ///
+    /// The example below drops the first five elements from the stream:
+    ///
+    ///     let numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    ///     cancellable = numbers.publisher
+    ///         .dropFirst(5)
+    ///         .sink { print("\($0)", terminator: " ") }
+    ///
+    ///     // Prints: "6 7 8 9 10 "
+    ///
+    /// - Parameter count: The number of elements to omit. The default is `1`.
+    /// - Returns: A publisher that doesn’t republish the first `count` elements.
     public func dropFirst(_ count: Int = 1) -> Publishers.Drop<Self> {
         return .init(upstream: self, count: count)
     }
@@ -40,8 +52,8 @@ extension Publishers {
                   Upstream.Output == Downstream.Input
         {
             let inner = Inner(downstream: subscriber, count: count)
-            upstream.subscribe(inner)
             subscriber.receive(subscription: inner)
+            upstream.subscribe(inner)
         }
     }
 }
@@ -58,8 +70,6 @@ extension Publishers.Drop {
         where Upstream.Output == Downstream.Input,
               Upstream.Failure == Downstream.Failure
     {
-        // NOTE: This class has been audited for thread safety.
-
         typealias Input = Upstream.Output
 
         typealias Failure = Upstream.Failure
@@ -94,7 +104,7 @@ extension Publishers.Drop {
             precondition(count >= 0, "count must not be negative")
             let demandToRequestFromUpstream = pendingDemand + count
             lock.unlock()
-            if demandToRequestFromUpstream > 0 {
+            if demandToRequestFromUpstream != .none {
                 subscription.request(demandToRequestFromUpstream)
             }
         }
@@ -109,8 +119,9 @@ extension Publishers.Drop {
         }
 
         func receive(completion: Subscribers.Completion<Upstream.Failure>) {
-            // Combine doesn't lock here!
+            lock.lock()
             subscription = nil
+            lock.unlock()
             downstream.receive(completion: completion)
         }
 
@@ -127,9 +138,11 @@ extension Publishers.Drop {
         }
 
         func cancel() {
-            // Combine doesn't lock here!
+            lock.lock()
+            let subscription = self.subscription
+            self.subscription = nil
+            lock.unlock()
             subscription?.cancel()
-            subscription = nil
         }
 
         var description: String { return "Drop" }

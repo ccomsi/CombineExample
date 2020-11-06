@@ -9,7 +9,7 @@
 import Foundation
 import OpenCombine
 import OpenCombineFoundation
-import IGListKit.IGListDiffable
+import IGListDiffKit
 
 final class CommentNodeModel: NSObject {
     

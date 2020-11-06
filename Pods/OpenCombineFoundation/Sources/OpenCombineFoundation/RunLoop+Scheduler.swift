@@ -1,12 +1,11 @@
 //
-//  RunLoop.swift
+//  RunLoop+Scheduler.swift
 //  
 //
 //  Created by Sergej Jaskiewicz on 13.12.2019.
 //
 
 import CoreFoundation
-import Dispatch
 import Foundation
 import OpenCombine
 
@@ -30,8 +29,8 @@ extension RunLoop {
 
         public let runLoop: RunLoop
 
-        public init(_ queue: RunLoop) {
-            self.runLoop = queue
+        public init(_ runLoop: RunLoop) {
+            self.runLoop = runLoop
         }
 
         /// The scheduler time type used by the run loop.
@@ -160,29 +159,19 @@ extension RunLoop {
         }
 
         public func schedule(options: SchedulerOptions?, _ action: @escaping () -> Void) {
-            let cfRunLoop = runLoop.getCFRunLoop()
-            CFRunLoopPerformBlock(cfRunLoop, defaultRunLoopModeString, action)
-            CFRunLoopWakeUp(cfRunLoop)
+            runLoop.performBlockPortably(action)
         }
 
         public func schedule(after date: SchedulerTimeType,
                              tolerance: SchedulerTimeType.Stride,
                              options: SchedulerOptions?,
                              _ action: @escaping () -> Void) {
-            let timer = CFRunLoopTimerCreateWithHandler(
-                nil,
-                date.date.timeIntervalSinceReferenceDate,
-                0,
-                0,
-                0,
-                { _ in action() }
-            )
-            // A bug in Combine. The schedule(after:tolerance:options:_:) methods
-            // always executes the action on the current runloop.
-            // (FB7493579 if Apple folks are watching)
-            let theWrongRunLoop = CFRunLoopGetCurrent()
-            CFRunLoopAddTimer(theWrongRunLoop, timer, defaultRunLoopMode)
-            CFRunLoopWakeUp(theWrongRunLoop)
+            let timer = Timer(fire: date.date,
+                              interval: 0,
+                              repeats: false,
+                              block: { _ in action() })
+            timer.tolerance = tolerance.timeInterval
+            runLoop.add(timer, forMode: .default)
         }
 
         public func schedule(after date: SchedulerTimeType,
@@ -190,18 +179,13 @@ extension RunLoop {
                              tolerance: SchedulerTimeType.Stride,
                              options: SchedulerOptions?,
                              _ action: @escaping () -> Void) -> Cancellable {
-            let timer = CFRunLoopTimerCreateWithHandler(
-                nil,
-                date.date.timeIntervalSinceReferenceDate,
-                interval.magnitude,
-                0,
-                0,
-                { _ in action() }
-            )
-            let cfRunLoop = runLoop.getCFRunLoop()
-            CFRunLoopAddTimer(cfRunLoop, timer, defaultRunLoopMode)
-            CFRunLoopWakeUp(cfRunLoop)
-            return AnyCancellable { CFRunLoopTimerInvalidate(timer) }
+            let timer = Timer(fire: date.date,
+                              interval: interval.timeInterval,
+                              repeats: true,
+                              block: { _ in action() })
+            timer.tolerance = tolerance.timeInterval
+            runLoop.add(timer, forMode: .default)
+            return AnyCancellable { timer.invalidate() }
         }
 
         public var now: SchedulerTimeType {
@@ -273,19 +257,3 @@ extension RunLoop: OpenCombine.Scheduler {
     }
 }
 #endif
-
-private var defaultRunLoopMode: CFRunLoopMode {
-#if canImport(Darwin)
-    return CFRunLoopMode.defaultMode
-#else
-    return kCFRunLoopDefaultMode
-#endif
-}
-
-private var defaultRunLoopModeString: CFString {
-#if canImport(Darwin)
-    return CFRunLoopMode.defaultMode.rawValue
-#else
-    return kCFRunLoopDefaultMode
-#endif
-}

@@ -15,7 +15,7 @@ final class AlbumNode: ASCellNode {
     
     let cellNodeModel: AlbumNodeModel
     
-    var cancellable = [AnyCancellable]()
+    var cancellable = Set<AnyCancellable>()
 
     lazy var titleNode: ASTextNode = {
         ASTextNode()

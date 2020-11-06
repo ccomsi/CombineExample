@@ -5,7 +5,6 @@
 //  Created by Sergej Jaskiewicz on 16/09/2019.
 //
 
-// NOTE: This class has been audited for thread safety.
 internal final class SubjectSubscriber<Downstream: Subject>
     : Subscriber,
       CustomStringConvertible,
@@ -14,7 +13,7 @@ internal final class SubjectSubscriber<Downstream: Subject>
       Subscription
 {
     private let lock = UnfairLock.allocate()
-    private var downstreamSubject: Downstream?
+    private weak var downstreamSubject: Downstream?
     private var upstreamSubscription: Subscription?
 
     private var isCancelled: Bool { return downstreamSubject == nil }
@@ -40,23 +39,21 @@ internal final class SubjectSubscriber<Downstream: Subject>
 
     internal func receive(_ input: Downstream.Output) -> Subscribers.Demand {
         lock.lock()
-        guard let downstreamSubject = downstreamSubject else {
+        guard let subject = downstreamSubject, upstreamSubscription != nil else {
             lock.unlock()
             return .none
         }
-        guard upstreamSubscription != nil else { APIViolationValueBeforeSubscription() }
         lock.unlock()
-        downstreamSubject.send(input)
+        subject.send(input)
         return .none
     }
 
     internal func receive(completion: Subscribers.Completion<Downstream.Failure>) {
         lock.lock()
-        guard let subject = downstreamSubject else {
+        guard let subject = downstreamSubject, upstreamSubscription != nil else {
             lock.unlock()
             return
         }
-        guard upstreamSubscription != nil else { APIViolationUnexpectedCompletion() }
         lock.unlock()
         subject.send(completion: completion)
         downstreamSubject = nil
@@ -87,11 +84,7 @@ internal final class SubjectSubscriber<Downstream: Subject>
 
     internal func cancel() {
         lock.lock()
-        if isCancelled {
-            lock.unlock()
-            return
-        }
-        guard let subscription = upstreamSubscription else {
+        guard !isCancelled, let subscription = upstreamSubscription else {
             lock.unlock()
             return
         }

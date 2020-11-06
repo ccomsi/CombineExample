@@ -10,13 +10,13 @@ import Foundation
 import OpenCombine
 import OpenCombineFoundation
 import OpenCombineDispatch
-import IGListKit.IGListDiffable
+import IGListDiffKit
 
 final class SearchNodeModel: NSObject {
     @Published var title: String
     
     var photoNodeModels = [PhotoNodeModel & ListDiffable]()
-    var cancellable = [AnyCancellable]()
+    var cancellable = Set<AnyCancellable>()
     
     init(title: String) {
         self.title = title

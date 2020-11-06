@@ -17,6 +17,7 @@
     CFTimeInterval _playHead;
     NSUInteger _playedLoops;
     NSUInteger _lastSuccessfulFrameIndex;
+    CFTimeInterval *_durations;
 }
 
 @property (nonatomic, assign) CGImageRef frameImage;
@@ -43,7 +44,7 @@
 
 - (instancetype)initWithFrame:(CGRect)frame
 {
-    if (self = [super initWithFrame:CGRectZero]) {
+    if (self = [super initWithFrame:frame]) {
         [self commonInit:nil];
     }
     return self;
@@ -61,12 +62,45 @@
 {
     _animatedImage = animatedImage;
     _animatedImageRunLoopMode = NSRunLoopCommonModes;
+    _durations = NULL;
+    
+    if (animatedImage) {
+        [self initializeAnimatedImage:animatedImage];
+    }
+}
+
+- (void)initializeAnimatedImage:(nonnull PINCachedAnimatedImage *)animatedImage
+{
+    PINWeakify(self);
+    animatedImage.coverImageReadyCallback = ^(PINImage *coverImage) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            PINStrongify(self);
+            // In this case the lock is already gone we have to call the unlocked version therefore
+            [self coverImageCompleted:coverImage];
+        });
+    };
+    
+    animatedImage.playbackReadyCallback = ^{
+        dispatch_async(dispatch_get_main_queue(), ^{
+            // In this case the lock is already gone we have to call the unlocked version therefore
+            PINStrongify(self);
+            [self checkIfShouldAnimate];
+        });
+    };
+    if (animatedImage.playbackReady) {
+        [self checkIfShouldAnimate];
+    }
+  
+    [self resetDurationsWithAnimatedImage:animatedImage];
 }
 
 - (void)dealloc
 {
     if (_frameImage) {
         CGImageRelease(_frameImage);
+    }
+    if (_durations) {
+        free(_durations);
     }
 }
 
@@ -84,25 +118,7 @@
     _animatedImage = animatedImage;
     
     if (animatedImage != nil) {
-        PINWeakify(self);
-        animatedImage.coverImageReadyCallback = ^(PINImage *coverImage) {
-            dispatch_async(dispatch_get_main_queue(), ^{
-                PINStrongify(self);
-                // In this case the lock is already gone we have to call the unlocked version therefore
-                [self coverImageCompleted:coverImage];
-            });
-        };
-        
-        animatedImage.playbackReadyCallback = ^{
-            dispatch_async(dispatch_get_main_queue(), ^{
-                // In this case the lock is already gone we have to call the unlocked version therefore
-                PINStrongify(self);
-                [self checkIfShouldAnimate];
-            });
-        };
-        if (animatedImage.playbackReady) {
-            [self checkIfShouldAnimate];
-        }
+        [self initializeAnimatedImage:animatedImage];
     } else {
         // Clean up after ourselves.
         self.layer.contents = nil;
@@ -203,13 +219,22 @@
         return;
     }
     
-    // Get frame interval before holding display link lock to avoid deadlock
     NSUInteger frameInterval = self.animatedImage.frameInterval;
-
+    
     if (_displayLink == nil) {
         _playHead = 0;
         _displayLink = [PINDisplayLink displayLinkWithTarget:[PINRemoteWeakProxy weakProxyWithTarget:self] selector:@selector(displayLinkFired:)];
-        _displayLink.frameInterval = frameInterval;
+#if PIN_TARGET_IOS
+        if (@available(iOS 10.0, tvOS 10.0, *)) {
+            // Convert from display link fractional value to fps (note: frameInterval is always at least 1)
+            NSInteger frameRate = ceil([PINAnimatedImage maximumFramesPerSecond] / ((double) frameInterval));
+            _displayLink.preferredFramesPerSecond = frameRate;
+        } else {
+#endif
+            _displayLink.frameInterval = frameInterval;
+#if PIN_TARGET_IOS
+        }
+#endif
         _lastSuccessfulFrameIndex = NSUIntegerMax;
         
         [_displayLink addToRunLoop:[NSRunLoop mainRunLoop] forMode:self.animatedImageRunLoopMode];
@@ -382,19 +407,37 @@
     }
 }
 
+- (void)resetDurationsWithAnimatedImage:(PINCachedAnimatedImage *)animatedImage
+{
+    PINAssertMain();
+    if (!animatedImage) {
+        return;
+    }
+    if (_durations) {
+        free(_durations);
+    }
+    _durations = malloc(sizeof(CFTimeInterval) * animatedImage.frameCount);
+    CFTimeInterval sum = 0.0f;
+    for (int i = 0; i < animatedImage.frameCount; i++) {
+        sum += [animatedImage durationAtIndex:i];
+        _durations[i] = sum;
+    }
+}
+
 - (NSUInteger)frameIndexAtPlayHeadPosition:(CFTimeInterval)playHead
 {
     PINAssertMain();
-    NSUInteger frameIndex = 0;
-    for (NSUInteger durationIndex = 0; durationIndex < self.animatedImage.frameCount; durationIndex++) {
-        playHead -= [self.animatedImage durationAtIndex:durationIndex];
-        if (playHead < 0) {
-            return frameIndex;
-        }
-        frameIndex++;
-    }
+    int low = 0, high = (int)_animatedImage.frameCount - 1;
     
-    return frameIndex;
+    while (low <= high) {
+        int mid = low + (high - low) / 2;
+        if (_durations[mid] < playHead) {
+            low = mid + 1;
+        } else {
+            high = mid - 1;
+        }
+    }
+    return MAX(MIN(low, (int)_animatedImage.frameCount - 1), 0);
 }
 
 @end

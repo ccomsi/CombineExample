@@ -10,11 +10,30 @@ extension Publisher {
     /// Measures and emits the time interval between events received from an upstream
     /// publisher.
     ///
-    /// The output type of the returned scheduler is the time interval of the provided
+    /// Use `measureInterval(using:options:)` to measure the time between events delivered
+    /// from an upstream publisher.
+    ///
+    /// In the example below, a 1-second `Timer` is used as the data source for an event
+    /// publisher; the `measureInterval(using:options:)` operator reports the elapsed time
+    /// between the reception of events on the main run loop:
+    ///
+    ///     cancellable = Timer.publish(every: 1, on: .main, in: .default)
+    ///         .autoconnect()
+    ///         .measureInterval(using: RunLoop.main)
+    ///         .sink { print("\($0)", terminator: "\n") }
+    ///
+    ///     // Prints:
+    ///     //      Stride(magnitude: 1.0013610124588013)
+    ///     //      Stride(magnitude: 0.9992760419845581)
+    ///
+    /// The output type of the returned publisher is the time interval of the provided
     /// scheduler.
     ///
+    /// This operator uses the provided scheduler’s `now` property to measure intervals
+    /// between events.
+    ///
     /// - Parameters:
-    ///   - scheduler: The scheduler on which to deliver elements.
+    ///   - scheduler: A scheduler to use for tracking the timing of events.
     ///   - options: Options that customize the delivery of elements.
     /// - Returns: A publisher that emits elements representing the time interval between
     ///   the elements it receives.
@@ -39,9 +58,15 @@ extension Publishers {
         /// The publisher from which this publisher receives elements.
         public let upstream: Upstream
 
-        /// The scheduler on which to deliver elements.
+        /// The scheduler used for tracking the timing of events.
         public let scheduler: Context
 
+        /// Creates a publisher that measures and emits the time interval between events
+        /// received from an upstream publisher.
+        ///
+        /// - Parameters:
+        ///   - upstream: The publisher from which this publisher receives elements.
+        ///   - scheduler: A scheduler to use for tracking the timing of events.
         public init(upstream: Upstream, scheduler: Context) {
             self.upstream = upstream
             self.scheduler = scheduler
@@ -51,7 +76,7 @@ extension Publishers {
             where Upstream.Failure == Downstream.Failure,
                   Downstream.Input == Context.SchedulerTimeType.Stride
         {
-            upstream.subscribe(Inner(self, downstream: subscriber))
+            upstream.subscribe(Inner(scheduler: scheduler, downstream: subscriber))
         }
     }
 }
@@ -66,27 +91,22 @@ extension Publishers.MeasureInterval {
         where Downstream.Input == Context.SchedulerTimeType.Stride,
               Downstream.Failure == Upstream.Failure
     {
-        // NOTE: This class has been audited for thread safety
-
         typealias Input = Upstream.Output
         typealias Failure = Upstream.Failure
 
-        typealias MeasureInterval = Publishers.MeasureInterval<Upstream, Context>
-
-        private enum State {
-            case ready(MeasureInterval, Downstream)
-            case subscribed(MeasureInterval, Downstream, Subscription)
-            case terminal
-        }
-
         private let lock = UnfairLock.allocate()
 
-        private var state: State
+        private let downstream: Downstream
+
+        private let scheduler: Context
+
+        private var state = SubscriptionStatus.awaitingSubscription
 
         private var last: Context.SchedulerTimeType?
 
-        init(_ measureInterval: MeasureInterval, downstream: Downstream) {
-            state = .ready(measureInterval, downstream)
+        init(scheduler: Context, downstream: Downstream) {
+            self.downstream = downstream
+            self.scheduler = scheduler
         }
 
         deinit {
@@ -95,25 +115,26 @@ extension Publishers.MeasureInterval {
 
         func receive(subscription: Subscription) {
             lock.lock()
-            guard case let .ready(measureInterval, downstream) = state else {
+            guard case .awaitingSubscription = state else {
                 lock.unlock()
                 subscription.cancel()
                 return
             }
-            state = .subscribed(measureInterval, downstream, subscription)
-            last = measureInterval.scheduler.now
+            state = .subscribed(subscription)
+            last = scheduler.now
             lock.unlock()
             downstream.receive(subscription: self)
         }
 
         func receive(_: Input) -> Subscribers.Demand {
             lock.lock()
-            guard case let .subscribed(measureInterval, downstream, subscription) = state,
-                  let previousTime = last else {
+            guard case let .subscribed(subscription) = state,
+                  let previousTime = last else
+            {
                 lock.unlock()
                 return .none
             }
-            let now = measureInterval.scheduler.now
+            let now = scheduler.now
             last = now
             lock.unlock()
             let newDemand = downstream.receive(previousTime.distance(to: now))
@@ -125,7 +146,7 @@ extension Publishers.MeasureInterval {
 
         func receive(completion: Subscribers.Completion<Failure>) {
             lock.lock()
-            guard case let .subscribed(_, downstream, _) = state else {
+            guard case .subscribed = state else {
                 lock.unlock()
                 return
             }
@@ -137,7 +158,7 @@ extension Publishers.MeasureInterval {
 
         func request(_ demand: Subscribers.Demand) {
             lock.lock()
-            guard case let .subscribed(_, _, subscription) = state else {
+            guard case let .subscribed(subscription) = state else {
                 lock.unlock()
                 return
             }
@@ -147,7 +168,7 @@ extension Publishers.MeasureInterval {
 
         func cancel() {
             lock.lock()
-            guard case let .subscribed(_, _, subscription) = state else {
+            guard case let .subscribed(subscription) = state else {
                 lock.unlock()
                 return
             }

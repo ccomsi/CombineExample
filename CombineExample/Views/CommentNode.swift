@@ -15,7 +15,7 @@ final class CommentNode: ASCellNode {
     
     let cellNodeModel: CommentNodeModel
     
-    var cancellable = [AnyCancellable]()
+    var cancellable = Set<AnyCancellable>()
     
     lazy var nameNode: ASTextNode = {
         ASTextNode()
