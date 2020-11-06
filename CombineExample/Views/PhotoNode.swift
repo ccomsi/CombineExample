@@ -49,6 +49,7 @@ final class PhotoNode: ASCellNode {
     }
 
     override func layoutSpecThatFits(_ constrainedSize: ASSizeRange) -> ASLayoutSpec {
+
         LayoutSpec {
             VStackLayout {
                 textNode

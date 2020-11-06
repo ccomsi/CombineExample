@@ -7,7 +7,7 @@
 //
 
 import Foundation
-import IGListKit.IGListDiffable
+import IGListDiffKit
 
 final class PhotoSection: NSObject {
     

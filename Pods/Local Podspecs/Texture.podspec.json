@@ -1,6 +1,6 @@
 {
   "name": "Texture",
-  "version": "2.8.1",
+  "version": "3.0.0",
   "license": {
     "type": "Apache 2"
   },
@@ -15,7 +15,7 @@
   "summary": "Smooth asynchronous user interfaces for iOS apps.",
   "source": {
     "git": "https://github.com/TextureGroup/Texture.git",
-    "tag": "2.8.1"
+    "tag": "3.0.0"
   },
   "module_name": "AsyncDisplayKit",
   "header_dir": "AsyncDisplayKit",
@@ -41,7 +41,7 @@
   "subspecs": [
     {
       "name": "Core",
-      "compiler_flags": "-fno-exceptions -Wno-implicit-retain-self",
+      "compiler_flags": "-fno-exceptions",
       "public_header_files": [
         "Source/*.h",
         "Source/Details/**/*.h",
@@ -60,7 +60,7 @@
       "name": "PINRemoteImage",
       "dependencies": {
         "PINRemoteImage/iOS": [
-          "= 3.0.0-beta.14"
+          "~> 3.0.0"
         ],
         "PINRemoteImage/PINCache": [
 
@@ -74,7 +74,10 @@
       "name": "IGListKit",
       "dependencies": {
         "IGListKit": [
-          "~> 3.0"
+          "~> 4.0"
+        ],
+        "IGListDiffKit": [
+          "~> 4.0"
         ],
         "Texture/Core": [
 

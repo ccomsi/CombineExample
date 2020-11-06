@@ -58,9 +58,8 @@ final class UserNode: ASCellNode {
             .store(in: &cancellable)
     }
     
-    override func layoutSpecThatFits(_ constrainedSize: ASSizeRange) ->
-        ASLayoutSpec {
-            
+    override func layoutSpecThatFits(_ constrainedSize: ASSizeRange) -> ASLayoutSpec {
+
         LayoutSpec {
             VStackLayout {
                 nameNode

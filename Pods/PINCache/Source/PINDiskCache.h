@@ -4,9 +4,9 @@
 
 #import <Foundation/Foundation.h>
 
-#import <PINCache/PINCacheMacros.h>
-#import <PINCache/PINCaching.h>
-#import <PINCache/PINCacheObjectSubscripting.h>
+#import "PINCacheMacros.h"
+#import "PINCaching.h"
+#import "PINCacheObjectSubscripting.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -26,7 +26,7 @@ typedef NS_ENUM(NSInteger, PINDiskCacheError) {
 /**
  A callback block which provides the cache, key and object as arguments
  */
-typedef void (^PINDiskCacheObjectBlock)(PINDiskCache *cache, NSString *key, id <NSCoding>  _Nullable object);
+typedef void (^PINDiskCacheObjectBlock)(PINDiskCache *cache, NSString *key, id <NSCoding> _Nullable object);
 
 /**
  A callback block which provides the key and fileURL of the object
@@ -155,7 +155,7 @@ PIN_SUBCLASSING_RESTRICTED
 
 /**
  The maximum number of bytes allowed on disk. This value is checked every time an object is set, if the written
- size exceeds the limit a trim call is queued. Defaults to `0.0`, meaning no practical limit.
+ size exceeds the limit a trim call is queued. Defaults to 50MB.
  
  */
 @property (assign) NSUInteger byteLimit;
@@ -163,7 +163,7 @@ PIN_SUBCLASSING_RESTRICTED
 /**
  The maximum number of seconds an object is allowed to exist in the cache. Setting this to a value
  greater than `0.0` will start a recurring GCD timer with the same period that calls <trimToDate:>.
- Setting it back to `0.0` will stop the timer. Defaults to `0.0`, meaning no limit.
+ Setting it back to `0.0` will stop the timer. Defaults to 30 days.
  
  */
 @property (assign) NSTimeInterval ageLimit;
@@ -249,8 +249,8 @@ PIN_SUBCLASSING_RESTRICTED
 - (instancetype)init NS_UNAVAILABLE;
 
 /**
- Multiple instances with the same name are allowed and can safely access
- the same data on disk thanks to the magic of seriality.
+ Multiple instances with the same name are *not* allowed as they would conflict
+ with each other.
  
  @see name
  @param name The name of the cache.
@@ -259,8 +259,8 @@ PIN_SUBCLASSING_RESTRICTED
 - (instancetype)initWithName:(nonnull NSString *)name;
 
 /**
- Multiple instances with the same name are allowed and can safely access
- the same data on disk thanks to the magic of seriality.
+ Multiple instances with the same name are *not* allowed as they would conflict
+ with each other.
  
  @see name
  @param name The name of the cache.

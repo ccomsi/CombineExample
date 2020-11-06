@@ -11,7 +11,7 @@ import OpenCombine
 import OpenCombineDispatch
 import OpenCombineFoundation
 
-final class FeedViewController: ASViewController<ASTableNode> {
+final class FeedViewController: ASDKViewController<ASTableNode> {
     
     var nodeModel = FeedNodeModel(title: "Welcome to Playground")
     

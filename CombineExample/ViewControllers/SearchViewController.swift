@@ -11,7 +11,7 @@ import IGListKit
 import OpenCombine
 import OpenCombineDispatch
 
-final class SearchViewController: ASViewController<ASCollectionNode> {
+final class SearchViewController: ASDKViewController<ASCollectionNode> {
     
     var adapter: ListAdapter!
     var collectionNode: ASCollectionNode {

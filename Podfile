@@ -9,11 +9,10 @@ target 'CombineExample' do
   # Pods for CombineExample
   pod 'OpenCombine', :git => 'https://github.com/broadwaylamb/OpenCombine.git', :branch => 'master'
   pod 'OpenCombineDispatch', :git => 'https://github.com/broadwaylamb/OpenCombine.git', :branch => 'master'
-  pod 'OpenCombineFoundation', :git => 'https://github.com/broadwaylamb/OpenCombine.git', :branch => 'master'
-  pod 'IGListKit'
-  pod 'Texture', :git => 'https://github.com/TextureGroup/Texture.git', :branch => 'releases/p8.8'
-  pod 'Texture/IGListKit', :git => 'https://github.com/TextureGroup/Texture.git', :branch => 'releases/p8.8'
-  pod 'TextureSwiftSupport'
+  pod 'OpenCombineFoundation', :git => 'https://github.com/broadwaylamb/OpenCombine.git', :branch => 'master'  
+  pod 'Texture',                  :git => 'https://github.com/TextureGroup/Texture.git',      :branch => 'releases/p8.38'
+  pod 'Texture/IGListKit',        :git => 'https://github.com/TextureGroup/Texture.git',      :branch => 'releases/p8.38'
+  pod 'TextureSwiftSupport',      '~> 3.0'
   pod 'SwiftyJSON', '~> 4.0'
   pod 'Alamofire', '~> 5.0.0-rc.3'
   target 'CombineExampleTests' do

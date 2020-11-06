@@ -10,7 +10,7 @@ import Foundation
 import OpenCombine
 import OpenCombineFoundation
 import OpenCombineDispatch
-import IGListKit.IGListDiffable
+import IGListDiffKit
 
 final class SearchNodeModel: NSObject {
     @Published var title: String
