@@ -9,49 +9,45 @@
 import AsyncDisplayKit
 import TextureSwiftSupport
 import OpenCombine
-import OpenCombineDispatch
 
 final class CommentNode: ASCellNode {
     
-    let cellNodeModel: CommentNodeModel
+    let viewModel: CommentViewModel
     
-    var cancellable = Set<AnyCancellable>()
+    private var cancellable = Set<AnyCancellable>()
     
-    lazy var nameNode: ASTextNode = {
+    private lazy var nameNode: ASTextNode = {
         ASTextNode()
     }()
     
-    lazy var emailNode: ASTextNode = {
+    private lazy var emailNode: ASTextNode = {
         ASTextNode()
     }()
     
-    lazy var bodyNode: ASTextNode = {
+    private lazy var bodyNode: ASTextNode = {
         ASTextNode()
     }()
     
-    init(_ nodeModel: CommentNodeModel) {
-        
-        self.cellNodeModel = nodeModel
+    init(_ viewModel: CommentViewModel) {        
+        self.viewModel = viewModel
         super.init()
         
         self.automaticallyManagesSubnodes = true
         self.binding()
     }
     
-    func binding() {
-        let nodeModel = cellNodeModel
-        
-        nodeModel.$name.map { NSAttributedString(string: $0) }
+    private func binding() {
+        viewModel.$name.map { NSAttributedString(string: $0) }
             .receive(on: DispatchQueue.main.ocombine)
             .assign(to: \.attributedText, on: nameNode)
             .store(in: &cancellable)
         
-        nodeModel.$email.map { NSAttributedString(string: $0) }
+        viewModel.$email.map { NSAttributedString(string: $0) }
         .receive(on: DispatchQueue.main.ocombine)
         .assign(to: \.attributedText, on: emailNode)
         .store(in: &cancellable)
         
-        nodeModel.$body.map { NSAttributedString(string: $0) }
+        viewModel.$body.map { NSAttributedString(string: $0) }
         .receive(on: DispatchQueue.main.ocombine)
         .assign(to: \.attributedText, on: bodyNode)
         .store(in: &cancellable)

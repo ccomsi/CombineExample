@@ -9,31 +9,28 @@
 import AsyncDisplayKit
 import TextureSwiftSupport
 import OpenCombine
-import OpenCombineDispatch
 
 final class AlbumNode: ASCellNode {
     
-    let cellNodeModel: AlbumNodeModel
+    let viewModel: AlbumViewModel
     
-    var cancellable = Set<AnyCancellable>()
+    private var cancellable = Set<AnyCancellable>()
 
-    lazy var titleNode: ASTextNode = {
-        ASTextNode()
+    private lazy var titleNode: ASTextNode = {
+        let node = ASTextNode()
+        return node
     }()
     
-    init(_ nodeModel: AlbumNodeModel) {
-        
-        self.cellNodeModel = nodeModel
+    init(_ viewModel: AlbumViewModel) {        
+        self.viewModel = viewModel
         super.init()
         
         self.automaticallyManagesSubnodes = true
         self.binding()
     }
     
-    func binding() {
-        let nodeModel = cellNodeModel
-        
-        nodeModel.$title.map { NSAttributedString(string: $0) }
+    private func binding() {
+        viewModel.$title.map { NSAttributedString(string: $0) }
             .receive(on: DispatchQueue.main.ocombine)
             .assign(to: \.attributedText, on: self.titleNode)
             .store(in: &self.cancellable)

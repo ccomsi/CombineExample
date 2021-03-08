@@ -7,39 +7,34 @@
 //
 
 import AsyncDisplayKit
-import IGListKit
 import OpenCombine
-import OpenCombineDispatch
+import DifferenceKit
 
 final class SearchViewController: ASDKViewController<ASCollectionNode> {
+
+    typealias ArraySection = SearchViewModel.Section
     
-    var adapter: ListAdapter!
-    var collectionNode: ASCollectionNode {
+    private var collectionNode: ASCollectionNode {
         return self.node
     }
-    
-    var data: [ListDiffable] = []
     
     override init() {
         let flowLayout = UICollectionViewFlowLayout()
         let collectionNode = ASCollectionNode(collectionViewLayout: flowLayout)
         super.init(node: collectionNode)
-        self.adapter = ListAdapter(updater: ListAdapterUpdater(), viewController: self)
-        self.adapter.dataSource = self
-        self.adapter.setASDKCollectionNode(collectionNode)
     }
     
-    var nodeModel = SearchNodeModel(title: "Welcome to Search")
+    var viewModel = SearchViewModel(title: "Welcome to Search")
     
-    var cancellable = Set<AnyCancellable>()
+    private var cancellable = Set<AnyCancellable>()
     
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
     
-    func bindings() {
+    private func bindings() {
         
-        nodeModel.$title
+        viewModel.$title
             .map { $0 }
             .receive(on: DispatchQueue.main.ocombine)
             .assign(to: \.title, on: self.navigationItem)
@@ -51,55 +46,70 @@ final class SearchViewController: ASDKViewController<ASCollectionNode> {
         
         self.navigationItem.rightBarButtonItem = .init(barButtonSystemItem: .done, target: self, action: #selector(foo))
         self.bindings()
+        
+        self.collectionNode.delegate = self
+        self.collectionNode.dataSource = self
     }
     
     @objc func foo() {
+        fetchNewBatchWithContext(nil)
+    }
+
+    func fetchNewBatchWithContext(_ context: ASBatchContext?) {
+        self.viewModel.title = "loading..."
         
-        DispatchQueue.main.async {
-            self.nodeModel.title = "loading..."
-        }
+        context?.beginBatchFetching()
         
-        self.nodeModel.fetch()            
-            .map { $0.map { PhotoNodeModel($0) } } // [Photo] to [PhotoNodeModel]
-            .map { PhotoSection($0) } // [PhotoNodeModel] to PhotoSection
+        self.viewModel.fetch()
+            .map { [ArraySection(model: .first, elements: $0.map { PhotoViewModel($0) })] }
             .receive(on: DispatchQueue.main.ocombine)
-            .sink(receiveCompletion: { completion in
-                print(".sink() received the completion", String(describing: completion))
+            .sink(receiveCompletion: { [unowned self] completion in
                 switch completion {
                 case .finished:
-                    self.adapter.performUpdates(animated: true, completion: { [weak self] _ in
-                        self?.nodeModel.title = "complete!"
-                    })
-                case .failure(let anError):
-                    self.nodeModel.title = "failure"
-                    self.adapter.performUpdates(animated: true, completion: nil)
-                    print("received error: ", anError)
+                    self.viewModel.title = "complete!"
+                case .failure(_):
+                    self.viewModel.title = "failure"
                 }
-            }, receiveValue: { someValue in
-                self.data = [someValue]
+                
+                context?.completeBatchFetching(true)
+                
+            }, receiveValue: { [unowned self] someValue in
+                
+                let changeSet = StagedChangeset(source: self.viewModel.data, target: someValue)
+                
+                self.collectionNode.reload(animated: true, using: changeSet) { [unowned self] data in
+                    self.viewModel.data = data
+                }
+                
             })
             .store(in: &cancellable)
     }
-
 }
 
-extension SearchViewController: ListAdapterDataSource {
-    
-    func objects(for listAdapter: ListAdapter) -> [ListDiffable] {
-        
-        return self.data
+extension SearchViewController: ASCollectionDataSource {
+    func numberOfSections(in collectionNode: ASCollectionNode) -> Int {
+        self.viewModel.data.count
     }
     
-    func listAdapter(_ listAdapter: ListAdapter, sectionControllerFor object: Any) -> ListSectionController {
-        
-        switch object {
-        case is PhotoSection:
-            return PhotoSectionController()
-        default:
-            assert(false, "missing case")
-            return ListSectionController()
-        }
+    func collectionNode(_ collectionNode: ASCollectionNode, numberOfItemsInSection section: Int) -> Int {
+        self.viewModel.data[section].elements.count
     }
     
-    func emptyView(for listAdapter: ListAdapter) -> UIView? { nil }
+    func collectionNode(_ collectionNode: ASCollectionNode, nodeBlockForItemAt indexPath: IndexPath) -> ASCellNodeBlock {
+        
+        let element = self.viewModel.data[indexPath.section].elements[indexPath.item]
+        
+        return { PhotoNode(element) }
+    }
+    
+    func collectionNode(_ collectionNode: ASCollectionNode, willBeginBatchFetchWith context: ASBatchContext) {
+        fetchNewBatchWithContext(context)
+    }
+}
+
+extension SearchViewController: ASCollectionDelegate {
+    
+    func shouldBatchFetch(for collectionNode: ASCollectionNode) -> Bool {
+        self.viewModel.data.isEmpty
+    }
 }

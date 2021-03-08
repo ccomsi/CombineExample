@@ -8,14 +8,19 @@
 
 import AsyncDisplayKit
 import OpenCombine
-import OpenCombineDispatch
-import OpenCombineFoundation
+import DifferenceKit
 
 final class FeedViewController: ASDKViewController<ASTableNode> {
     
-    var nodeModel = FeedNodeModel(title: "Welcome to Playground")
+    typealias ArraySection = FeedViewModel.Section
+
+    private var tableNode: ASTableNode {
+        return self.node
+    }
     
-    var cancellable = Set<AnyCancellable>()
+    var viewModel = FeedViewModel(title: "Welcome to Playground")
+    
+    private var cancellable = Set<AnyCancellable>()
     
     override init() {
         super.init(node: ASTableNode())
@@ -25,8 +30,8 @@ final class FeedViewController: ASDKViewController<ASTableNode> {
         fatalError("init(coder:) has not been implemented")
     }        
     
-    func bindings() {
-        nodeModel.$title
+    private func bindings() {
+        viewModel.$title
             .map { $0 }
             .receive(on: DispatchQueue.main.ocombine)
             .assign(to: \.title, on: self.navigationItem)
@@ -46,52 +51,65 @@ final class FeedViewController: ASDKViewController<ASTableNode> {
     }
     
     @objc func foo() {
-        
+        fetchNewBatchWithContext(nil)
     }
     
     func fetchNewBatchWithContext(_ context: ASBatchContext?) {
-        DispatchQueue.main.async {
-            self.nodeModel.title = "loading..."
-        }
+        self.viewModel.title = "loading..."
         
-        self.nodeModel.fetch()
+        context?.beginBatchFetching()
+        
+        self.viewModel.fetch()
+            .map {
+                [ArraySection(model: .first, elements: $0.map { PostViewModel($0) })]
+            }
             .receive(on: DispatchQueue.main.ocombine)
-            .sink(receiveCompletion: { completion in
-                print(".sink() received the completion", String(describing: completion))
+            .sink(receiveCompletion: { [unowned self] completion in
                 switch completion {
                 case .finished:
-                    self.node.reloadData {
-                        self.nodeModel.title = "complete!"
-                        context?.completeBatchFetching(true)
-                    }
-                    break
-                case .failure(let anError):
-                    self.nodeModel.title = "failure"
-                    print("received error: ", anError)
-                    context?.completeBatchFetching(true)
+                    self.viewModel.title = "complete!"
+                case .failure(_):
+                    self.viewModel.title = "failure"
                 }
-            }, receiveValue: { someValue in
-                print(".sink() received count =\(someValue.count)")
-                self.nodeModel.photoNodeModels = someValue.compactMap { PhotoNodeModel($0) }
+                
+                context?.completeBatchFetching(true)
+                
+            }, receiveValue: { [unowned self] someValue in
+                
+                let changeSet = StagedChangeset(source: self.viewModel.data, target: someValue)
+                self.tableNode.reload(using: changeSet, with: .none) { [unowned self] data in
+                    self.viewModel.data = data
+                }
             })
             .store(in: &cancellable)
     }
 }
 
-extension FeedViewController: ASTableDataSource, ASTableDelegate {
+extension FeedViewController: ASTableDataSource {
+    
+    func numberOfSections(in tableNode: ASTableNode) -> Int {
+        return self.viewModel.data.count
+    }
+    
     func tableNode(_ tableNode: ASTableNode, numberOfRowsInSection section: Int) -> Int {
-        return self.nodeModel.photoNodeModels.count
+        return self.viewModel.data[section].elements.count
     }
     
     func tableNode(_ tableNode: ASTableNode, nodeBlockForRowAt indexPath: IndexPath) -> ASCellNodeBlock {
-        let nodeModel: PhotoNodeModel = self.nodeModel.photoNodeModels[indexPath.row]
-        let nodeBlock: ASCellNodeBlock = {
-            PhotoNode(nodeModel)
-        }
-        return nodeBlock
+        
+        let element = self.viewModel.data[indexPath.section].elements[indexPath.item]
+                
+        return { PostNode(element) }
     }
     
     func tableNode(_ tableNode: ASTableNode, willBeginBatchFetchWith context: ASBatchContext) {
         fetchNewBatchWithContext(context)
+    }
+}
+
+extension FeedViewController: ASTableDelegate {
+    
+    func shouldBatchFetch(for tableNode: ASTableNode) -> Bool {
+        self.viewModel.data.isEmpty
     }
 }

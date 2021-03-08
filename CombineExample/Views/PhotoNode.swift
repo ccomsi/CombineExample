@@ -9,40 +9,38 @@
 import AsyncDisplayKit
 import TextureSwiftSupport
 import OpenCombine
-import OpenCombineDispatch
 
 final class PhotoNode: ASCellNode {
 
-    let cellNodeModel: PhotoNodeModel
+    let viewModel: PhotoViewModel
     
-    var cancellable = Set<AnyCancellable>()
+    private var cancellable = Set<AnyCancellable>()
     
-    lazy var imageNode: ASNetworkImageNode = {
-        ASNetworkImageNode()
+    private lazy var imageNode: ASNetworkImageNode = {
+        let node = ASNetworkImageNode()
+        return node
     }()
     
-    lazy var textNode: ASTextNode = {
-        ASTextNode()
+    private lazy var textNode: ASTextNode = {
+        let node = ASTextNode()
+        return node
     }()
     
-    init(_ nodeModel: PhotoNodeModel) {
-        
-        self.cellNodeModel = nodeModel
+    init(_ viewModel: PhotoViewModel) {
+        self.viewModel = viewModel
         super.init()
         
         self.automaticallyManagesSubnodes = true
         self.binding()        
     }
     
-    func binding() {
-        let nodeModel = cellNodeModel
-        
-        nodeModel.$title.map { NSAttributedString(string: $0) }
+    private func binding() {
+        viewModel.$title.map { NSAttributedString(string: $0) }
             .receive(on: DispatchQueue.main.ocombine)
             .assign(to: \.attributedText, on: textNode)
             .store(in: &cancellable)
         
-        nodeModel.$thumbnailUrl.map { $0 }
+        viewModel.$thumbnailUrl.map { $0 }
             .receive(on: DispatchQueue.main.ocombine)
             .assign(to: \.url, on: imageNode)
             .store(in: &cancellable)

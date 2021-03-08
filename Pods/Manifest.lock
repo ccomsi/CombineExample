@@ -1,12 +1,15 @@
 PODS:
-  - Alamofire (5.0.0-rc.3)
-  - IGListDiffKit (4.0.0)
-  - IGListKit (4.0.0):
-    - IGListDiffKit (= 4.0.0)
-  - OpenCombine (0.11.0)
-  - OpenCombineDispatch (0.11.0):
+  - Alamofire (5.4.1)
+  - DiffableDataSources (0.4.0):
+    - DifferenceKit/AppKitExtension (~> 1.1)
+    - DifferenceKit/UIKitExtension (~> 1.1)
+  - DifferenceKit/Core (1.1.5)
+  - DifferenceKit/UIKitExtension (1.1.5):
+    - DifferenceKit/Core
+  - OpenCombine (0.12.0)
+  - OpenCombineDispatch (0.12.0):
     - OpenCombine (>= 0.10.2)
-  - OpenCombineFoundation (0.11.0):
+  - OpenCombineFoundation (0.12.0):
     - OpenCombine (>= 0.10.2)
   - PINCache (3.0.3):
     - PINCache/Arc-exception-safe (= 3.0.3)
@@ -34,10 +37,6 @@ PODS:
   - Texture/AssetsLibrary (3.0.0):
     - Texture/Core
   - Texture/Core (3.0.0)
-  - Texture/IGListKit (3.0.0):
-    - IGListDiffKit (~> 4.0)
-    - IGListKit (~> 4.0)
-    - Texture/Core
   - Texture/MapKit (3.0.0):
     - Texture/Core
   - Texture/Photos (3.0.0):
@@ -48,24 +47,24 @@ PODS:
     - Texture/Core
   - Texture/Video (3.0.0):
     - Texture/Core
-  - TextureSwiftSupport (3.1.0):
+  - TextureSwiftSupport (3.3.0):
     - Texture/Core (~> 3)
 
 DEPENDENCIES:
-  - Alamofire (~> 5.0.0-rc.3)
-  - OpenCombine (~> 0.11)
-  - OpenCombineDispatch (~> 0.11)
-  - OpenCombineFoundation (~> 0.11)
+  - Alamofire
+  - DiffableDataSources
+  - OpenCombine (~> 0.12)
+  - OpenCombineDispatch (~> 0.12)
+  - OpenCombineFoundation (~> 0.12)
   - SwiftyJSON (~> 4.0)
-  - Texture (from `https://github.com/TextureGroup/Texture.git`, branch `releases/p8.38`)
-  - Texture/IGListKit (from `https://github.com/TextureGroup/Texture.git`, branch `releases/p8.38`)
-  - TextureSwiftSupport (~> 3.0)
+  - Texture (from `https://github.com/TextureGroup/Texture.git`, branch `releases/p9.7`)
+  - TextureSwiftSupport
 
 SPEC REPOS:
   trunk:
     - Alamofire
-    - IGListDiffKit
-    - IGListKit
+    - DiffableDataSources
+    - DifferenceKit
     - OpenCombine
     - OpenCombineDispatch
     - OpenCombineFoundation
@@ -77,28 +76,28 @@ SPEC REPOS:
 
 EXTERNAL SOURCES:
   Texture:
-    :branch: releases/p8.38
+    :branch: releases/p9.7
     :git: https://github.com/TextureGroup/Texture.git
 
 CHECKOUT OPTIONS:
   Texture:
-    :commit: 5a205d84c842c8709819898bd6ee4a74c1f91a3d
+    :commit: 17d4d13463c9676a53ed5ba1c48842241584fb95
     :git: https://github.com/TextureGroup/Texture.git
 
 SPEC CHECKSUMS:
-  Alamofire: ca8c0de6906873be89d6deec5c8de279e00bf872
-  IGListDiffKit: 665d6cf43ce726e676013db9c7d6c4294259b6b2
-  IGListKit: fd5a5d21935298f5849fa49d426843cff97b77c7
-  OpenCombine: 819bfcd0bdf70a2929073c661953514cb4d757d4
-  OpenCombineDispatch: d6df618e05cf4321dac2479093cc4586e3ceb5c3
-  OpenCombineFoundation: 2e33e68cc4f74256731dc7db6ecfe509356e0076
+  Alamofire: 2291f7d21ca607c491dd17642e5d40fdcda0e65c
+  DiffableDataSources: 80396cec405c9b29e1e07b55c9be7d11b46c8741
+  DifferenceKit: 516f12e336ed65a3a0665847b5c3cb5cad4bd4ea
+  OpenCombine: a8c52f249bc3c7e2bd5ffb75e8653e57a8e33d27
+  OpenCombineDispatch: 68ed85ae5255d558a14434a802f65fb833b50d39
+  OpenCombineFoundation: b279f27ca5a5a165f0c06e2beb266fc068967bb8
   PINCache: 7a8fc1a691173d21dbddbf86cd515de6efa55086
   PINOperation: 00c935935f1e8cf0d1e2d6b542e75b88fc3e5e20
   PINRemoteImage: f1295b29f8c5e640e25335a1b2bd9d805171bd01
   SwiftyJSON: 6faa0040f8b59dead0ee07436cbf76b73c08fd08
-  Texture: 2f109e937850d94d1d07232041c9c7313ccddb81
-  TextureSwiftSupport: 7cdef4dd42b22896791f6a922a00133c245760ee
+  Texture: 41ce7d2fdff193a45cc8cfa3c254115cf776068a
+  TextureSwiftSupport: f77fcb409983be5da7ef5b29566be0fcc0c440ed
 
-PODFILE CHECKSUM: 2037a5bd6af7b1884660b23930ac38fa2e7eec21
+PODFILE CHECKSUM: 7e7d295bcbf133edb02b30c42e556d5623b4e03d
 
-COCOAPODS: 1.10.0
+COCOAPODS: 1.10.1

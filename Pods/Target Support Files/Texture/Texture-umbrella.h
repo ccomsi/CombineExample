@@ -163,6 +163,11 @@
 #import "AsyncDisplayKit+Tips.h"
 #import "ASTextNodeTypes.h"
 #import "ASTextKitComponents.h"
+#import "ASTextDebugOption.h"
+#import "ASTextInput.h"
+#import "ASTextLayout.h"
+#import "ASTextLine.h"
+#import "ASTextAttribute.h"
 
 FOUNDATION_EXPORT double AsyncDisplayKitVersionNumber;
 FOUNDATION_EXPORT const unsigned char AsyncDisplayKitVersionString[];

@@ -8,14 +8,14 @@ target 'CombineExample' do
   
   use_frameworks!
   # Pods for CombineExample
-  pod 'OpenCombine',              '~> 0.11'
-  pod 'OpenCombineDispatch',      '~> 0.11'
-  pod 'OpenCombineFoundation',    '~> 0.11'
-  pod 'Texture',                  :git => 'https://github.com/TextureGroup/Texture.git',      :branch => 'releases/p8.38'
-  pod 'Texture/IGListKit',        :git => 'https://github.com/TextureGroup/Texture.git',      :branch => 'releases/p8.38'
-  pod 'TextureSwiftSupport',      '~> 3.0'
+  pod 'OpenCombine',              '~> 0.12'
+  pod 'OpenCombineDispatch',      '~> 0.12'
+  pod 'OpenCombineFoundation',    '~> 0.12'
+  pod 'Texture',                  :git => 'https://github.com/TextureGroup/Texture.git',      :branch => 'releases/p9.7'
+  pod 'TextureSwiftSupport'
+  pod 'DiffableDataSources'
   pod 'SwiftyJSON', '~> 4.0'
-  pod 'Alamofire', '~> 5.0.0-rc.3'
+  pod 'Alamofire'
   target 'CombineExampleTests' do
     inherit! :search_paths
     # Pods for testing

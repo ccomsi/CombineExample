@@ -9,40 +9,38 @@
 import AsyncDisplayKit
 import TextureSwiftSupport
 import OpenCombine
-import OpenCombineDispatch
 
 final class PostNode: ASCellNode {
-    let cellNodeModel: PostNodeModel
+    let viewModel: PostViewModel
     
-    var cancellable = Set<AnyCancellable>()
+    private var cancellable = Set<AnyCancellable>()
     
-    lazy var titleNode: ASTextNode = {
-        ASTextNode()
+    private lazy var titleNode: ASTextNode = {
+        let node = ASTextNode()
+        return node
     }()
     
-    lazy var bodyNode: ASTextNode = {
-        ASTextNode()
+    private lazy var bodyNode: ASTextNode = {
+        let node = ASTextNode()
+        return node
     }()
     
-    init(_ nodeModel: PostNodeModel) {
-        
-        self.cellNodeModel = nodeModel
+    init(_ viewModel: PostViewModel) {        
+        self.viewModel = viewModel
         super.init()
         
         self.automaticallyManagesSubnodes = true
         self.binding()
     }
     
-    func binding() {
-        let nodeModel = cellNodeModel
-        
-        nodeModel.$title.map { NSAttributedString(string: $0) }
-            .receive(on: DispatchQueue.main.ocombine)
+    private func binding() {
+        viewModel.$title
+            .map { NSAttributedString(string: $0) }
             .assign(to: \.attributedText, on: titleNode)
             .store(in: &cancellable)
         
-        nodeModel.$body.map { NSAttributedString(string: $0) }
-            .receive(on: DispatchQueue.main.ocombine)
+        viewModel.$body
+            .map { NSAttributedString(string: $0) }
             .assign(to: \.attributedText, on: bodyNode)
             .store(in: &cancellable)
 

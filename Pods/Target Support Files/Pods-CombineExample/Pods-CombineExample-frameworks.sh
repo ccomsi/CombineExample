@@ -176,8 +176,8 @@ code_sign_if_enabled() {
 
 if [[ "$CONFIGURATION" == "Debug" ]]; then
   install_framework "${BUILT_PRODUCTS_DIR}/Alamofire/Alamofire.framework"
-  install_framework "${BUILT_PRODUCTS_DIR}/IGListDiffKit/IGListDiffKit.framework"
-  install_framework "${BUILT_PRODUCTS_DIR}/IGListKit/IGListKit.framework"
+  install_framework "${BUILT_PRODUCTS_DIR}/DiffableDataSources/DiffableDataSources.framework"
+  install_framework "${BUILT_PRODUCTS_DIR}/DifferenceKit/DifferenceKit.framework"
   install_framework "${BUILT_PRODUCTS_DIR}/OpenCombine/OpenCombine.framework"
   install_framework "${BUILT_PRODUCTS_DIR}/OpenCombineDispatch/OpenCombineDispatch.framework"
   install_framework "${BUILT_PRODUCTS_DIR}/OpenCombineFoundation/OpenCombineFoundation.framework"
@@ -190,8 +190,8 @@ if [[ "$CONFIGURATION" == "Debug" ]]; then
 fi
 if [[ "$CONFIGURATION" == "Release" ]]; then
   install_framework "${BUILT_PRODUCTS_DIR}/Alamofire/Alamofire.framework"
-  install_framework "${BUILT_PRODUCTS_DIR}/IGListDiffKit/IGListDiffKit.framework"
-  install_framework "${BUILT_PRODUCTS_DIR}/IGListKit/IGListKit.framework"
+  install_framework "${BUILT_PRODUCTS_DIR}/DiffableDataSources/DiffableDataSources.framework"
+  install_framework "${BUILT_PRODUCTS_DIR}/DifferenceKit/DifferenceKit.framework"
   install_framework "${BUILT_PRODUCTS_DIR}/OpenCombine/OpenCombine.framework"
   install_framework "${BUILT_PRODUCTS_DIR}/OpenCombineDispatch/OpenCombineDispatch.framework"
   install_framework "${BUILT_PRODUCTS_DIR}/OpenCombineFoundation/OpenCombineFoundation.framework"

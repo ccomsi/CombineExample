@@ -9,31 +9,28 @@
 import AsyncDisplayKit
 import TextureSwiftSupport
 import OpenCombine
-import OpenCombineDispatch
 
 final class TodoNode: ASCellNode {
     
-    let cellNodeModel: TodoNodeModel
+    let viewModel: TodoViewModel
     
-    var cancellable = Set<AnyCancellable>()
+    private var cancellable = Set<AnyCancellable>()
     
-    lazy var titleNode: ASTextNode = {
-        ASTextNode()
+    private lazy var titleNode: ASTextNode = {
+        let node = ASTextNode()
+        return node
     }()
     
-    init(_ nodeModel: TodoNodeModel) {
-        
-        self.cellNodeModel = nodeModel
+    init(_ viewModel: TodoViewModel) {        
+        self.viewModel = viewModel
         super.init()
         
         self.automaticallyManagesSubnodes = true
         self.binding()
     }
     
-    func binding() {
-        let nodeModel = cellNodeModel
-        
-        nodeModel.$title.map { NSAttributedString(string: $0) }
+    private func binding() {
+        viewModel.$title.map { NSAttributedString(string: $0) }
             .receive(on: DispatchQueue.main.ocombine)
             .assign(to: \.attributedText, on: titleNode)
             .store(in: &cancellable)

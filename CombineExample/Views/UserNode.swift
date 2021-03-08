@@ -9,50 +9,49 @@
 import AsyncDisplayKit
 import TextureSwiftSupport
 import OpenCombine
-import OpenCombineDispatch
 
 final class UserNode: ASCellNode {
     
-    let cellNodeModel: UserNodeModel
+    let viewModel: UserViewModel
     
-    var cancellable = Set<AnyCancellable>()
+    private var cancellable = Set<AnyCancellable>()
     
-    lazy var nameNode: ASTextNode = {
-        ASTextNode()
+    private lazy var nameNode: ASTextNode = {
+        let node = ASTextNode()
+        return node
     }()
     
-    lazy var userNameNode: ASTextNode = {
-        ASTextNode()
+    private lazy var userNameNode: ASTextNode = {
+        let node = ASTextNode()
+        return node
     }()
     
-    lazy var emailNode: ASTextNode = {
-        ASTextNode()
+    private lazy var emailNode: ASTextNode = {
+        let node = ASTextNode()
+        return node
     }()
     
-    init(_ nodeModel: UserNodeModel) {
-        
-        self.cellNodeModel = nodeModel
+    init(_ viewModel: UserViewModel) {        
+        self.viewModel = viewModel
         super.init()
         
         self.automaticallyManagesSubnodes = true
         self.binding()
     }
     
-    func binding() {
+    private func binding() {
         
-        let nodeModel = cellNodeModel
-        
-        nodeModel.$name.map { NSAttributedString(string: $0) }
+        viewModel.$name.map { NSAttributedString(string: $0) }
             .receive(on: DispatchQueue.main.ocombine)
             .assign(to: \.attributedText, on: nameNode)
             .store(in: &cancellable)
         
-        nodeModel.$userName.map { NSAttributedString(string: $0) }
+        viewModel.$userName.map { NSAttributedString(string: $0) }
             .receive(on: DispatchQueue.main.ocombine)
             .assign(to: \.attributedText, on: userNameNode)
             .store(in: &cancellable)
         
-        nodeModel.$email.map { NSAttributedString(string: $0) }
+        viewModel.$email.map { NSAttributedString(string: $0) }
             .receive(on: DispatchQueue.main.ocombine)
             .assign(to: \.attributedText, on: emailNode)
             .store(in: &cancellable)
