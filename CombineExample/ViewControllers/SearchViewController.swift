@@ -50,6 +50,10 @@ final class SearchViewController: ASDKViewController<ASCollectionNode> {
         self.collectionNode.delegate = self
         self.collectionNode.dataSource = self
     }
+
+    private func test() {
+        print("hellow")
+    }
     
     @objc func foo() {
         fetchNewBatchWithContext(nil)
