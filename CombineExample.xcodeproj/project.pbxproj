@@ -10,7 +10,6 @@
 		4D055B9123FD66E5001399CA /* URL.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D055B9023FD66E5001399CA /* URL.swift */; };
 		4D12725724051315009C863F /* SearchViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D12725624051315009C863F /* SearchViewController.swift */; };
 		4D127259240523C3009C863F /* SearchViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D127258240523C3009C863F /* SearchViewModel.swift */; };
-		4D6D2A6823F1974E001B76AA /* OpenCombineSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6D2A6723F1974E001B76AA /* OpenCombineSupport.swift */; };
 		4D6D2A6E23F1B2D7001B76AA /* Photo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6D2A6D23F1B2D7001B76AA /* Photo.swift */; };
 		4D6D2A7023F1B595001B76AA /* Post.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6D2A6F23F1B595001B76AA /* Post.swift */; };
 		4D6D2A7223F1B59B001B76AA /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6D2A7123F1B59B001B76AA /* User.swift */; };
@@ -61,7 +60,6 @@
 		4D055B9023FD66E5001399CA /* URL.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URL.swift; sourceTree = "<group>"; };
 		4D12725624051315009C863F /* SearchViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchViewController.swift; sourceTree = "<group>"; };
 		4D127258240523C3009C863F /* SearchViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchViewModel.swift; sourceTree = "<group>"; };
-		4D6D2A6723F1974E001B76AA /* OpenCombineSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenCombineSupport.swift; sourceTree = "<group>"; };
 		4D6D2A6D23F1B2D7001B76AA /* Photo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Photo.swift; sourceTree = "<group>"; };
 		4D6D2A6F23F1B595001B76AA /* Post.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Post.swift; sourceTree = "<group>"; };
 		4D6D2A7123F1B59B001B76AA /* User.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = User.swift; sourceTree = "<group>"; };
@@ -180,7 +178,6 @@
 		4D6D2A6C23F1B291001B76AA /* Support */ = {
 			isa = PBXGroup;
 			children = (
-				4D6D2A6723F1974E001B76AA /* OpenCombineSupport.swift */,
 				4D055B9023FD66E5001399CA /* URL.swift */,
 				4D70FEBC25F64EC800204125 /* ASTableNode+.swift */,
 				4D70FEC025F64ED100204125 /* ASCollectionNode+.swift */,
@@ -436,7 +433,6 @@
 				4DD5BA8024056A8900EBA4CB /* TodoViewModel.swift in Sources */,
 				4D055B9123FD66E5001399CA /* URL.swift in Sources */,
 				4DD5BA722405685900EBA4CB /* CommentNode.swift in Sources */,
-				4D6D2A6823F1974E001B76AA /* OpenCombineSupport.swift in Sources */,
 				4D70FEDC25F662FC00204125 /* ViewModel.swift in Sources */,
 				4DE168CA23CCCEE900B0325E /* FeedViewController.swift in Sources */,
 				4D70FEF225F6723C00204125 /* BoardPostViewModel.swift in Sources */,
@@ -623,6 +619,7 @@
 				CODE_SIGN_STYLE = Manual;
 				DEVELOPMENT_TEAM = "";
 				INFOPLIST_FILE = CombineExample/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -643,6 +640,7 @@
 				CODE_SIGN_STYLE = Manual;
 				DEVELOPMENT_TEAM = "";
 				INFOPLIST_FILE = CombineExample/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

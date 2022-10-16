@@ -7,8 +7,7 @@
 //
 
 import Foundation
-import OpenCombine
-import OpenCombineFoundation
+import Combine
 import DifferenceKit
 
 class PostViewModel: NSObject {

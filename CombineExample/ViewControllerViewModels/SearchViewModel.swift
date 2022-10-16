@@ -7,7 +7,7 @@
 //
 
 import Foundation
-import OpenCombine
+import Combine
 import DifferenceKit
 
 final class SearchViewModel: NSObject {
@@ -29,7 +29,7 @@ final class SearchViewModel: NSObject {
     }
     
     func fetch() -> AnyPublisher<[Photo], Error> {
-        return URLSession.shared.ocombine
+        return URLSession.shared
             .dataTaskPublisher(for: URL.URLForModelType(modelType: .photos))
             .map { $0.data }
             .decode(type: [Photo].self, decoder: JSONDecoder())

@@ -15,10 +15,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         
-        let feedNavigationController = ASNavigationController(rootViewController: FeedViewController())
+        let feedNavigationController = ASDKNavigationController(rootViewController: FeedViewController())
         feedNavigationController.tabBarItem.title = "Feed"
         
-        let searchNavigationController = ASNavigationController(rootViewController: SearchViewController())
+        let searchNavigationController = ASDKNavigationController(rootViewController: SearchViewController())
         searchNavigationController.tabBarItem.title = "Search"
         
         let tabBarController = ASTabBarController()

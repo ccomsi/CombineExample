@@ -8,7 +8,7 @@
 
 import AsyncDisplayKit
 import TextureSwiftSupport
-import OpenCombine
+import Combine
 
 final class PostNode: ASCellNode {
     let viewModel: PostViewModel

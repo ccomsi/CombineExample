@@ -8,7 +8,7 @@
 
 import AsyncDisplayKit
 import TextureSwiftSupport
-import OpenCombine
+import Combine
 
 final class PhotoNode: ASCellNode {
 
@@ -36,12 +36,12 @@ final class PhotoNode: ASCellNode {
     
     private func binding() {
         viewModel.$title.map { NSAttributedString(string: $0) }
-            .receive(on: DispatchQueue.main.ocombine)
+            .receive(on: DispatchQueue.main)
             .assign(to: \.attributedText, on: textNode)
             .store(in: &cancellable)
         
         viewModel.$thumbnailUrl.map { $0 }
-            .receive(on: DispatchQueue.main.ocombine)
+            .receive(on: DispatchQueue.main)
             .assign(to: \.url, on: imageNode)
             .store(in: &cancellable)
     }

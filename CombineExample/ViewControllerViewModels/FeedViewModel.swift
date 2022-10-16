@@ -7,7 +7,7 @@
 //
 
 import Foundation
-import OpenCombine
+import Combine
 import DifferenceKit
 
 final class FeedViewModel {
@@ -29,7 +29,7 @@ final class FeedViewModel {
     }
     
     func fetch() -> AnyPublisher<[Post], Error> {
-        return URLSession.shared.ocombine
+        return URLSession.shared
             .dataTaskPublisher(for: URL.URLForModelType(modelType: .posts))
             .map { $0.data }
             .decode(type: [Post].self, decoder: JSONDecoder())

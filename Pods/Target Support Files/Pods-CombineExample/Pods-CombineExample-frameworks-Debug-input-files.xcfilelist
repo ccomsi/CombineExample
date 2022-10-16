@@ -1,10 +1,8 @@
 ${PODS_ROOT}/Target Support Files/Pods-CombineExample/Pods-CombineExample-frameworks.sh
 ${BUILT_PRODUCTS_DIR}/Alamofire/Alamofire.framework
+${BUILT_PRODUCTS_DIR}/Descriptors/Descriptors.framework
 ${BUILT_PRODUCTS_DIR}/DiffableDataSources/DiffableDataSources.framework
 ${BUILT_PRODUCTS_DIR}/DifferenceKit/DifferenceKit.framework
-${BUILT_PRODUCTS_DIR}/OpenCombine/OpenCombine.framework
-${BUILT_PRODUCTS_DIR}/OpenCombineDispatch/OpenCombineDispatch.framework
-${BUILT_PRODUCTS_DIR}/OpenCombineFoundation/OpenCombineFoundation.framework
 ${BUILT_PRODUCTS_DIR}/PINCache/PINCache.framework
 ${BUILT_PRODUCTS_DIR}/PINOperation/PINOperation.framework
 ${BUILT_PRODUCTS_DIR}/PINRemoteImage/PINRemoteImage.framework

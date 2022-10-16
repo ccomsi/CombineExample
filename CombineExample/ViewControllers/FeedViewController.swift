@@ -7,7 +7,7 @@
 //
 
 import AsyncDisplayKit
-import OpenCombine
+import Combine
 import DifferenceKit
 
 final class FeedViewController: ASDKViewController<ASTableNode> {
@@ -33,7 +33,7 @@ final class FeedViewController: ASDKViewController<ASTableNode> {
     private func bindings() {
         viewModel.$title
             .map { $0 }
-            .receive(on: DispatchQueue.main.ocombine)
+            .receive(on: DispatchQueue.main)
             .assign(to: \.title, on: self.navigationItem)
             .store(in: &cancellable)
     }
@@ -63,7 +63,7 @@ final class FeedViewController: ASDKViewController<ASTableNode> {
             .map {
                 [ArraySection(model: .first, elements: $0.map { PostViewModel($0) })]
             }
-            .receive(on: DispatchQueue.main.ocombine)
+            .receive(on: DispatchQueue.main)
             .sink(receiveCompletion: { [unowned self] completion in
                 switch completion {
                 case .finished:

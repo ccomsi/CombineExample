@@ -7,7 +7,7 @@
 //
 
 import AsyncDisplayKit
-import OpenCombine
+import Combine
 import DifferenceKit
 
 final class SearchViewController: ASDKViewController<ASCollectionNode> {
@@ -36,7 +36,7 @@ final class SearchViewController: ASDKViewController<ASCollectionNode> {
         
         viewModel.$title
             .map { $0 }
-            .receive(on: DispatchQueue.main.ocombine)
+            .receive(on: DispatchQueue.main)
             .assign(to: \.title, on: self.navigationItem)
             .store(in: &cancellable)
     }
@@ -62,7 +62,7 @@ final class SearchViewController: ASDKViewController<ASCollectionNode> {
         
         self.viewModel.fetch()
             .map { [ArraySection(model: .first, elements: $0.map { PhotoViewModel($0) })] }
-            .receive(on: DispatchQueue.main.ocombine)
+            .receive(on: DispatchQueue.main)
             .sink(receiveCompletion: { [unowned self] completion in
                 switch completion {
                 case .finished:

@@ -7,10 +7,8 @@
 //
 
 import Foundation
-import OpenCombine
+import Combine
 import AsyncDisplayKit
-
-typealias ObservableObject = OpenCombine.ObservableObject
 
 class ViewModel: ObservableObject {
     

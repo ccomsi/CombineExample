@@ -8,7 +8,7 @@
 
 import AsyncDisplayKit
 import TextureSwiftSupport
-import OpenCombine
+import Combine
 
 final class UserNode: ASCellNode {
     
@@ -42,17 +42,17 @@ final class UserNode: ASCellNode {
     private func binding() {
         
         viewModel.$name.map { NSAttributedString(string: $0) }
-            .receive(on: DispatchQueue.main.ocombine)
+            .receive(on: DispatchQueue.main)
             .assign(to: \.attributedText, on: nameNode)
             .store(in: &cancellable)
         
         viewModel.$userName.map { NSAttributedString(string: $0) }
-            .receive(on: DispatchQueue.main.ocombine)
+            .receive(on: DispatchQueue.main)
             .assign(to: \.attributedText, on: userNameNode)
             .store(in: &cancellable)
         
         viewModel.$email.map { NSAttributedString(string: $0) }
-            .receive(on: DispatchQueue.main.ocombine)
+            .receive(on: DispatchQueue.main)
             .assign(to: \.attributedText, on: emailNode)
             .store(in: &cancellable)
     }

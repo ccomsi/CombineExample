@@ -8,7 +8,7 @@
 
 import AsyncDisplayKit
 import TextureSwiftSupport
-import OpenCombine
+import Combine
 
 final class AlbumNode: ASCellNode {
     
@@ -31,7 +31,7 @@ final class AlbumNode: ASCellNode {
     
     private func binding() {
         viewModel.$title.map { NSAttributedString(string: $0) }
-            .receive(on: DispatchQueue.main.ocombine)
+            .receive(on: DispatchQueue.main)
             .assign(to: \.attributedText, on: self.titleNode)
             .store(in: &self.cancellable)
     }
